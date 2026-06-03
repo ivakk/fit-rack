@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: FitTrack
+    orgId: 1
+    folder: FitTrack
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

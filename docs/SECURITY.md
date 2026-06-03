@@ -12,7 +12,7 @@ This document maps controls in the repo to the [OWASP Top 10](https://owasp.org/
 | **A06 Vulnerable components** | Pin versions in Gradle/npm; run `make test` and dependency scans before release |
 | **A07 Auth failures** | Password policy (length + letter + digit); uniform “Invalid credentials”; JWT expiry; optional refresh flow in frontend |
 | **A08 Integrity failures** | Immutable infra config in git; rebuild images after changes; sign containers in CI for production |
-| **A09 Logging failures** | `SECURITY` audit log line on auth failures (no passwords/tokens) |
+| **A09 Logging failures** | `SECURITY` audit log line on auth failures (no passwords/tokens); Prometheus/Grafana for metrics (change default Grafana password in `.env`) |
 | **A10 SSRF** | No user-controlled outbound URLs; ForwardAuth targets fixed IAM service only |
 
 ## Client rules

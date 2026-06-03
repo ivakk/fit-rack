@@ -16,6 +16,12 @@ down:
 logs:
 	docker compose logs -f
 
+logs-grafana:
+	docker compose logs -f grafana prometheus
+
+monitoring:
+	docker compose up -d --build iam workout prometheus grafana
+
 test:
 	./scripts/test-all.sh
 

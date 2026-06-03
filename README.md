@@ -29,6 +29,8 @@ This will:
 | Traefik dashboard | http://localhost:8090 |
 | IAM (debug only) | http://localhost:8080 |
 | RabbitMQ UI | http://localhost:15672 — `fitrack` / `fitrack` |
+| **Grafana** | http://localhost:3001 — `admin` / `admin` (change in `.env`) |
+| **Prometheus** | http://localhost:9090 |
 
 ### Client rules
 
@@ -62,6 +64,8 @@ There are no tombstone or “deleted” flags in MongoDB. After account deletion
 | `make test-gateway` | End-to-end gateway smoke test (stack must be up) |
 | `make logs` | Follow logs |
 | `make clean` | Stop and remove volumes |
+| `make logs-grafana` | Follow Grafana + Prometheus logs |
+| `make monitoring` | Start/rebuild IAM, Workout, Prometheus, Grafana |
 | `make frontend` | Run Next.js dev server locally (backend must be up) |
 
 ## Repository layout
@@ -77,6 +81,7 @@ fitrack/
 │   ├── iam-service/
 │   └── workout-service/
 ├── frontends/main-frontend/   # Next.js (atomic design)
+├── monitoring/              # Prometheus + Grafana (see monitoring/README.md)
 ├── scripts/setup.sh
 ├── scripts/test-all.sh
 └── Makefile
@@ -89,6 +94,7 @@ fitrack/
 - **Workout** — workouts DB; trusts `X-Internal-User-Id` from gateway only
 - **MongoDB 8.0** — separate databases per service (`fitrack_iam`, `fitrack_workout`)
 - **RabbitMQ** — async events between services (`user.registered`, `user.deleted` for workout purge; no HTTP coupling)
+- **Prometheus + Grafana** — metrics from IAM, Workout, and RabbitMQ (`monitoring/`)
 
 ## Troubleshooting
 
