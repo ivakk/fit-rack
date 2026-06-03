@@ -3,6 +3,7 @@ import { ApiError, authApi, workoutApi } from "./api";
 
 describe("api client", () => {
   beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "http://localhost");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
@@ -53,6 +54,21 @@ describe("api client", () => {
         name: "ApiError",
         message: "Invalid credentials",
         status: 401,
+      })
+    );
+  });
+
+  it("workoutApi.update sends PUT with exercises", async () => {
+    await workoutApi.update("t", "w-1", {
+      exercises: [{ name: "Squat", sets: 3, reps: 10 }],
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost/workouts/w-1",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          exercises: [{ name: "Squat", sets: 3, reps: 10 }],
+        }),
       })
     );
   });

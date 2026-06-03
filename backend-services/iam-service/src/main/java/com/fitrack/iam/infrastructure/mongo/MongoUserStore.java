@@ -30,4 +30,9 @@ public class MongoUserStore implements UserStore {
         var saved = repository.save(mapper.toDocument(user));
         return mapper.toDomain(saved);
     }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
+    }
 }

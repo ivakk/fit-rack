@@ -36,7 +36,12 @@ export default function WorkoutDetailPage() {
         ← All workouts
       </Link>
       <div className="mt-6">
-        <WorkoutDetail workout={workout} loading={loading} error={error} />
+        <WorkoutDetail
+          workout={workout}
+          loading={loading}
+          error={error}
+          onWorkoutUpdated={setWorkout}
+        />
       </div>
     </AppTemplate>
   );

@@ -35,6 +35,13 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {}
+    },
+    {
+      "name": "workout-service.user-deleted",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
     }
   ],
   "exchanges": [
@@ -55,6 +62,14 @@
       "destination": "workout-service.user-registered",
       "destination_type": "queue",
       "routing_key": "user.registered",
+      "arguments": {}
+    },
+    {
+      "source": "fitrack.events",
+      "vhost": "/",
+      "destination": "workout-service.user-deleted",
+      "destination_type": "queue",
+      "routing_key": "user.deleted",
       "arguments": {}
     }
   ]

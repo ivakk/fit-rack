@@ -38,6 +38,23 @@ public class RabbitMessagingConfig {
     }
 
     @Bean
+    Queue userDeletedQueue(MessagingProperties properties) {
+        return QueueBuilder.durable(properties.getQueues().getUserDeleted()).build();
+    }
+
+    @Bean
+    Binding userDeletedBinding(
+            Queue userDeletedQueue,
+            TopicExchange fitrackEventsExchange,
+            MessagingProperties properties
+    ) {
+        return BindingBuilder
+                .bind(userDeletedQueue)
+                .to(fitrackEventsExchange)
+                .with(properties.getRoutingKeys().getUserDeleted());
+    }
+
+    @Bean
     MessageConverter jacksonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }

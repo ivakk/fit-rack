@@ -34,6 +34,7 @@ Default URI: `mongodb://localhost:27017/fitrack_iam` (`application-dev.propertie
 | POST | `/auth/login` | Issue tokens |
 | POST | `/auth/refresh` | Rotate refresh token |
 | GET | `/auth/me` | Current user (`Authorization: Bearer …`) |
+| DELETE | `/auth/me` | Permanently delete account and all refresh tokens (publishes `user.deleted` for workout purge) |
 | GET | `/auth/forward-auth` | Traefik ForwardAuth — returns `X-User-Id` headers (not for clients) |
 
 **Gateway:** http://localhost/auth/… (Traefik). **Direct debug:** http://localhost:8080

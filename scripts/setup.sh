@@ -18,6 +18,9 @@ fi
 if [ ! -f .env ]; then
   echo "Creating .env from .env.example"
   cp .env.example .env
+elif ! grep -q '^WORKOUT_ENCRYPTION_KEY=' .env 2>/dev/null; then
+  echo "Adding WORKOUT_ENCRYPTION_KEY to .env (required by workout-service)"
+  printf '\n# --- Workout encryption at rest (min 32 chars) ---\nWORKOUT_ENCRYPTION_KEY=fitrack-dev-workout-encryption-key-32b\n' >> .env
 fi
 
 # shellcheck disable=SC1091

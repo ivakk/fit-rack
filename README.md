@@ -38,7 +38,18 @@ This will:
 
 Open **http://localhost:3000** after `make setup` — register, sign in, and log workouts in the UI.
 
-API clients use `Authorization: Bearer` only (never `X-User-Id`). See `scripts/test-gateway.sh`.
+All API traffic (browser, curl, tests) goes through **Traefik** at `NEXT_PUBLIC_API_URL` / `GATEWAY_URL` (default `http://localhost`). Do not call IAM `:8080` or workout containers directly from the client.
+
+API clients use `Authorization: Bearer` only (never `X-User-Id`). CORS is handled by Traefik (`gateway/traefik/dynamic/middlewares.yml`). See `scripts/test-gateway.sh`.
+
+### Permanent deletion (no soft-delete)
+
+| Action | Endpoint | Effect |
+|--------|----------|--------|
+| Delete one workout | `DELETE /workouts/{id}` | Document removed from `fitrack_workout` |
+| Delete account | `DELETE /auth/me` | User + refresh tokens removed from `fitrack_iam`; IAM publishes `user.deleted` so the workout service **hard-deletes** all workouts for that user |
+
+There are no tombstone or “deleted” flags in MongoDB. After account deletion, ForwardAuth rejects the old access token even before it expires.
 
 ## Make targets
 
@@ -77,7 +88,7 @@ fitrack/
 - **IAM** — JWT auth + `user.registered` events
 - **Workout** — workouts DB; trusts `X-Internal-User-Id` from gateway only
 - **MongoDB 8.0** — separate databases per service (`fitrack_iam`, `fitrack_workout`)
-- **RabbitMQ** — async events between services (no HTTP coupling)
+- **RabbitMQ** — async events between services (`user.registered`, `user.deleted` for workout purge; no HTTP coupling)
 
 ## Troubleshooting
 
@@ -89,7 +100,9 @@ fitrack/
 | `Gracefully Stopping`, `exit code 137`, Traefik `use of closed network connection` | OK | You pressed Ctrl+C; containers receive SIGTERM/SIGKILL |
 | Rabbit/Mongo `client unexpectedly closed` / `Connection ended` on stop | OK | Apps disconnect when the stack shuts down |
 | Traefik `Failed to retrieve information of the docker client` **while stopping** | OK | Docker API goes away before Traefik exits; harmless |
+| Workout `fitrack.encryption.workout-key must be at least 32 characters` on **start** | Fix | Set `WORKOUT_ENCRYPTION_KEY` in `.env` (32+ chars) and restart: `docker compose up -d workout` — compose now passes this variable into the container |
 | Workout `ACCESS_REFUSED` / exit code **1** on **start** | Fix | RabbitMQ credentials — see below |
+| `403` on `/workouts` from the browser (auth works) | Fix | Rebuild workout (no Spring CORS in Docker) and ensure `NEXT_PUBLIC_API_URL=http://localhost` (not `/api`). Run `docker compose up -d --build workout` and hard-refresh |
 | `404` on `http://localhost/auth/*` from the browser | Fix | Restart Traefik after route changes: `docker compose up -d traefik` — routes live in `gateway/traefik/dynamic/routes.yml` |
 | `401` on `/auth/register` with IAM logs `email dup key: { email: null }` | Fix | Rebuild IAM and reset Mongo: `docker compose build iam && docker compose down -v && docker compose up -d` |
 | `WebSocket … webpack-hmr failed` in the browser console | OK | Next.js dev HMR blip when the frontend container restarts; refresh the page |

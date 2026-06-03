@@ -45,12 +45,15 @@ class WorkoutControllerIntegrationTest {
 								"""))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.title").value("Leg day"))
-				.andExpect(jsonPath("$.userId").value("user-123"));
+				.andExpect(jsonPath("$.userId").value("user-123"))
+				.andExpect(jsonPath("$.exercises[0].name").value("Squat"))
+				.andExpect(jsonPath("$.exercises[0].sets").value(4));
 
 		mockMvc.perform(get("/workouts")
 						.header("X-User-Id", "user-123"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.length()").value(1));
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].exercises[0].name").value("Squat"));
 	}
 
 	@Test

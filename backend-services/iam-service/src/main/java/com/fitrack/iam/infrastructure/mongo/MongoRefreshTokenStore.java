@@ -31,4 +31,9 @@ public class MongoRefreshTokenStore implements RefreshTokenStore {
         token.setRevoked(true);
         repository.save(mapper.toDocument(token));
     }
+
+    @Override
+    public void deleteAllByUserId(String userId) {
+        repository.deleteByUserId(userId);
+    }
 }

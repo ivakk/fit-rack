@@ -59,4 +59,40 @@ echo "Correctly rejected client X-User-Id (400)."
 echo "== List workouts via gateway =="
 curl -sf "$GATEWAY/workouts" -H "Authorization: Bearer $TOKEN"
 echo ""
+
+WORKOUT_ID=$(extract_json_field "$CREATE" "id")
+if [ -z "$WORKOUT_ID" ] || [ "$WORKOUT_ID" = "null" ]; then
+  echo "Failed to extract workout id from: $CREATE"
+  exit 1
+fi
+
+echo "== Delete workout (hard delete) =="
+curl -sf -X DELETE "$GATEWAY/workouts/$WORKOUT_ID" -H "Authorization: Bearer $TOKEN"
+echo "Deleted workout $WORKOUT_ID."
+
+echo "== Create second workout before account delete =="
+curl -sf -X POST "$GATEWAY/workouts" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Pre-delete workout","exercises":[]}' > /dev/null
+
+echo "== Delete account (hard delete + async workout purge) =="
+curl -sf -X DELETE "$GATEWAY/auth/me" -H "Authorization: Bearer $TOKEN"
+echo "Account deleted."
+
+echo "== Workouts denied after account delete (expect HTTP 401) =="
+sleep 2
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY/workouts" -H "Authorization: Bearer $TOKEN")
+if [ "$STATUS" != "401" ]; then
+  echo "Expected 401 for workouts after account delete, got $STATUS"
+  exit 1
+fi
+echo "Token no longer grants workout access (401)."
+
+echo "== Re-register same email (IAM row fully removed) =="
+curl -sf -X POST "$GATEWAY/auth/register" \
+  -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"secret123\",\"fullName\":\"Gateway Test\",\"phoneNumber\":\"+1\",\"gender\":\"other\"}" > /dev/null
+echo "Re-registration succeeded."
+
 echo "All gateway checks passed."

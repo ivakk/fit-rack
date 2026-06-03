@@ -39,3 +39,11 @@ export interface CreateWorkoutPayload {
   durationMinutes?: number;
   exercises: Exercise[];
 }
+
+export interface UpdateWorkoutPayload {
+  title?: string;
+  notes?: string;
+  performedAt?: string;
+  durationMinutes?: number;
+  exercises?: Exercise[];
+}

@@ -13,10 +13,12 @@ public class MessagingProperties {
     @Data
     public static class RoutingKeys {
         private String userRegistered = "user.registered";
+        private String userDeleted = "user.deleted";
     }
 
     @Data
     public static class Queues {
         private String userRegistered = "workout-service.user-registered";
+        private String userDeleted = "workout-service.user-deleted";
     }
 }

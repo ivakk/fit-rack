@@ -1,4 +1,5 @@
 export { DashboardOverview } from "./DashboardOverview";
+export { DeleteAccountSection } from "./DeleteAccountSection";
 export { Header } from "./Header";
 export { LoginForm } from "./LoginForm";
 export { ProtectedGate } from "./ProtectedGate";

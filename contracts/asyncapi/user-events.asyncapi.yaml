@@ -14,12 +14,27 @@ channels:
         payload:
           $ref: '#/components/schemas/UserRegisteredPayload'
 
+  userDeleted:
+    address: fitrack.events/user.deleted
+    messages:
+      userDeleted:
+        name: UserDeleted
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/UserDeletedPayload'
+
 operations:
   publishUserRegistered:
     action: send
     channel:
       $ref: '#/channels/userRegistered'
     summary: IAM publishes after successful registration
+
+  publishUserDeleted:
+    action: send
+    channel:
+      $ref: '#/channels/userDeleted'
+    summary: IAM publishes when an account is permanently deleted
 
 components:
   schemas:
@@ -43,6 +58,20 @@ components:
         role:
           type: string
           example: MEMBER
+        occurredAt:
+          type: string
+          format: date-time
+          description: ISO-8601 UTC timestamp
+
+    UserDeletedPayload:
+      type: object
+      required:
+        - userId
+        - occurredAt
+      properties:
+        userId:
+          type: string
+          description: MongoDB user id of the deleted account
         occurredAt:
           type: string
           format: date-time

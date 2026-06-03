@@ -29,6 +29,7 @@ interface AuthContextValue {
     gender: string;
   }) => Promise<void>;
   logout: () => void;
+  deleteAccount: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -100,6 +101,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    await authApi.deleteAccount(token);
+    clearTokens();
+    setUser(null);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -107,9 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      deleteAccount,
       refreshUser: loadUser,
     }),
-    [user, loading, login, register, logout, loadUser]
+    [user, loading, login, register, logout, deleteAccount, loadUser]
   );
 
   return (

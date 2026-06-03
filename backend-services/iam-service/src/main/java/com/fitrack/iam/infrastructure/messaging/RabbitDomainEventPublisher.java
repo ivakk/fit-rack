@@ -1,5 +1,6 @@
 package com.fitrack.iam.infrastructure.messaging;
 
+import com.fitrack.iam.application.event.UserDeletedEvent;
 import com.fitrack.iam.application.event.UserRegisteredEvent;
 import com.fitrack.iam.application.port.out.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -21,5 +22,13 @@ public class RabbitDomainEventPublisher implements DomainEventPublisher {
         String routingKey = messagingProperties.getRoutingKeys().getUserRegistered();
         rabbitTemplate.convertAndSend(exchange, routingKey, event);
         log.debug("Published user.registered for userId={}", event.userId());
+    }
+
+    @Override
+    public void publishUserDeleted(UserDeletedEvent event) {
+        String exchange = messagingProperties.getExchange();
+        String routingKey = messagingProperties.getRoutingKeys().getUserDeleted();
+        rabbitTemplate.convertAndSend(exchange, routingKey, event);
+        log.debug("Published user.deleted for userId={}", event.userId());
     }
 }

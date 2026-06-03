@@ -2,6 +2,7 @@ package com.fitrack.iam.application;
 
 import com.fitrack.iam.api.dto.LoginRequest;
 import com.fitrack.iam.api.dto.RegisterRequest;
+import com.fitrack.iam.application.event.UserDeletedEvent;
 import com.fitrack.iam.application.event.UserRegisteredEvent;
 import com.fitrack.iam.application.port.out.DomainEventPublisher;
 import com.fitrack.iam.application.port.out.PasswordHasher;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,5 +116,31 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(req))
                 .hasMessageContaining("Invalid credentials");
+    }
+
+    @Test
+    void deleteAccount_publishesEventAndPurgesIamData() {
+        when(clock.now()).thenReturn(NOW);
+        User user = User.builder().id("user-1").email("a@test.com").build();
+        when(users.findById("user-1")).thenReturn(Optional.of(user));
+
+        authService.deleteAccount("user-1");
+
+        ArgumentCaptor<UserDeletedEvent> eventCaptor = ArgumentCaptor.forClass(UserDeletedEvent.class);
+        verify(events).publishUserDeleted(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().userId()).isEqualTo("user-1");
+        verify(refreshTokens).deleteAllByUserId("user-1");
+        verify(users).deleteById("user-1");
+    }
+
+    @Test
+    void deleteAccount_unknownUserDoesNothing() {
+        when(users.findById("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.deleteAccount("missing"))
+                .hasMessageContaining("User not found");
+
+        verify(events, never()).publishUserDeleted(any());
+        verify(users, never()).deleteById(anyString());
     }
 }

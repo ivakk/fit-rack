@@ -1,6 +1,7 @@
 package com.fitrack.iam.application;
 
 import com.fitrack.iam.api.dto.*;
+import com.fitrack.iam.application.event.UserDeletedEvent;
 import com.fitrack.iam.application.event.UserRegisteredEvent;
 import com.fitrack.iam.application.port.in.AuthUseCase;
 import com.fitrack.iam.application.port.out.DomainEventPublisher;
@@ -96,6 +97,24 @@ public class AuthService implements AuthUseCase {
         );
 
         return response;
+    }
+
+    @Override
+    public boolean userExists(String userId) {
+        return users.findById(userId).isPresent();
+    }
+
+    @Override
+    public void deleteAccount(String userId) {
+        User user = users.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        events.publishUserDeleted(new UserDeletedEvent(
+                user.getId(),
+                clock.now().toInstant(ZoneOffset.UTC)
+        ));
+        refreshTokens.deleteAllByUserId(userId);
+        users.deleteById(user.getId());
     }
 
     private TokenPairResponse issue(User user) {

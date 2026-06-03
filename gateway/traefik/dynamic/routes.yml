@@ -24,10 +24,10 @@ http:
         - web
       rule: PathPrefix(`/workouts`) && !Method(`OPTIONS`)
       middlewares:
+        - cors@file
         - strip-client-identity@file
         - iam-forwardauth@file
         - gateway-trusted@file
-        - cors@file
       service: workout
       priority: 10
 

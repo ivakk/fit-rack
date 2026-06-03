@@ -2,10 +2,13 @@ package com.fitrack.workout.web;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/** Native Gradle dev only — in Docker, Traefik {@code cors@file} handles CORS. */
 @Configuration
+@Profile("dev")
 @RequiredArgsConstructor
 public class CorsConfig implements WebMvcConfigurer {
 

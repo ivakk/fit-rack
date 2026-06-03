@@ -6,7 +6,7 @@ Stores user workouts in MongoDB. **Does not validate JWTs** and does not depend 
 
 Subscribes to **`user.registered`** on queue `workout-service.user-registered` (routing key from IAM). No HTTP call to IAM — payload shape is defined in `contracts/asyncapi/user-events.asyncapi.yaml`.
 
-Today the consumer only logs the event; extend it later (e.g. default workout templates).
+`user.deleted` triggers permanent removal of all workouts for that user from MongoDB.
 
 ## Authentication model
 
@@ -28,6 +28,7 @@ Clients call through the gateway with **`Authorization: Bearer`** only. The gate
 | GET | `/workouts` | List current user's workouts |
 | GET | `/workouts/{id}` | Get one workout |
 | PUT | `/workouts/{id}` | Update workout |
+| PUT | `/workouts/{id}` | Update workout (send full `exercises` list to add, remove, or replace entries) |
 | DELETE | `/workouts/{id}` | Delete workout |
 
 ## Local development

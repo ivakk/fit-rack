@@ -1,5 +1,6 @@
-import type { CreateWorkoutPayload, TokenPair, User, Workout } from "./types";
+import type { CreateWorkoutPayload, TokenPair, UpdateWorkoutPayload, User, Workout } from "./types";
 
+/** Traefik API gateway — all browser traffic goes here, not to service ports. */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost";
 
 export class ApiError extends Error {
@@ -64,6 +65,9 @@ export const authApi = {
     request<TokenPair>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
 
   me: (token: string) => request<User>("/auth/me", {}, token),
+
+  deleteAccount: (token: string) =>
+    request<void>("/auth/me", { method: "DELETE" }, token),
 };
 
 export const workoutApi = {
@@ -73,6 +77,9 @@ export const workoutApi = {
 
   create: (token: string, body: CreateWorkoutPayload) =>
     request<Workout>("/workouts", { method: "POST", body: JSON.stringify(body) }, token),
+
+  update: (token: string, id: string, body: UpdateWorkoutPayload) =>
+    request<Workout>(`/workouts/${id}`, { method: "PUT", body: JSON.stringify(body) }, token),
 
   remove: (token: string, id: string) =>
     request<void>(`/workouts/${id}`, { method: "DELETE" }, token),

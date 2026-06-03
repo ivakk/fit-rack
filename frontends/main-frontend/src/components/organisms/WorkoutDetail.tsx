@@ -8,6 +8,8 @@ import { Card } from "@/components/atoms/Card";
 import { Text } from "@/components/atoms/Text";
 import { ApiError, workoutApi } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth-storage";
+import { WorkoutExerciseList } from "@/components/molecules/WorkoutExerciseList";
+import { WorkoutExercisesEditor } from "@/components/organisms/WorkoutExercisesEditor";
 import type { Workout } from "@/lib/types";
 
 function formatDateTime(value?: string) {
@@ -19,10 +21,12 @@ export function WorkoutDetail({
   workout,
   loading,
   error,
+  onWorkoutUpdated,
 }: {
   workout: Workout | null;
   loading: boolean;
   error: string | null;
+  onWorkoutUpdated?: (workout: Workout) => void;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -72,24 +76,21 @@ export function WorkoutDetail({
         <Text variant="caption" className="mb-4">
           Exercises
         </Text>
-        {workout.exercises?.length ? (
+        {onWorkoutUpdated ? (
+          <WorkoutExerciseList workout={workout} onUpdated={onWorkoutUpdated} />
+        ) : workout.exercises?.length ? (
           <ul className="divide-y divide-white/10">
             {workout.exercises.map((ex, i) => (
-              <li
-                key={i}
-                className="flex flex-wrap items-baseline justify-between gap-2 py-3 first:pt-0 last:pb-0"
-              >
+              <li key={i} className="py-3 first:pt-0 last:pb-0">
                 <span className="font-medium">{ex.name}</span>
-                <Text variant="muted">
-                  {[ex.sets && `${ex.sets} sets`, ex.reps && `${ex.reps} reps`, ex.weightKg && `${ex.weightKg} kg`]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </Text>
               </li>
             ))}
           </ul>
         ) : (
           <Text variant="muted">No exercises recorded.</Text>
+        )}
+        {onWorkoutUpdated && (
+          <WorkoutExercisesEditor workout={workout} onSaved={onWorkoutUpdated} />
         )}
       </Card>
     </div>
