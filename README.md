@@ -73,9 +73,9 @@ fitrack/
 
 ## Architecture
 
-- **Traefik** — routes `/auth` → IAM, `/workouts` → Workout
+- **Traefik** (`http://localhost`) — single API entry; routes `/auth` → IAM, `/workouts` → Workout (ForwardAuth + CORS at gateway)
 - **IAM** — JWT auth + `user.registered` events
-- **Workout** — workouts DB; trusts `X-Internal-User-Id` from gateway only
+- **Workout** — workouts DB (AES-256-GCM encrypted at rest); trusts `X-Internal-User-Id` from gateway only
 - **MongoDB 8.0** — separate databases per service (`fitrack_iam`, `fitrack_workout`)
 - **RabbitMQ** — async events between services (no HTTP coupling)
 
@@ -92,6 +92,7 @@ fitrack/
 | Workout `ACCESS_REFUSED` / exit code **1** on **start** | Fix | RabbitMQ credentials — see below |
 | `404` on `http://localhost/auth/*` from the browser | Fix | Restart Traefik after route changes: `docker compose up -d traefik` — routes live in `gateway/traefik/dynamic/routes.yml` |
 | `401` on `/auth/register` with IAM logs `email dup key: { email: null }` | Fix | Rebuild IAM and reset Mongo: `docker compose build iam && docker compose down -v && docker compose up -d` |
+| `403` on `POST /workouts` (`Invalid CORS request`) | Fix | `docker compose up -d` — use Traefik CORS only; do not enable duplicate Spring CORS in workout-service docker profile |
 | `WebSocket … webpack-hmr failed` in the browser console | OK | Next.js dev HMR blip when the frontend container restarts; refresh the page |
 
 ### RabbitMQ auth

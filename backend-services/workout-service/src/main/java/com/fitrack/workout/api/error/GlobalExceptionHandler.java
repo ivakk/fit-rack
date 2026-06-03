@@ -1,6 +1,7 @@
 package com.fitrack.workout.api.error;
 
 import com.fitrack.workout.application.WorkoutNotFoundException;
+import com.fitrack.workout.infrastructure.crypto.WorkoutEncryptionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -31,6 +32,11 @@ public class GlobalExceptionHandler {
         );
         detail.setProperty("errors", errors);
         return detail;
+    }
+
+    @ExceptionHandler(WorkoutEncryptionException.class)
+    public ProblemDetail handleEncryption(WorkoutEncryptionException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Workout data could not be processed");
     }
 
     @ExceptionHandler(Exception.class)

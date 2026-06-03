@@ -4,7 +4,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +16,9 @@ public class CreateWorkoutRequest {
     private String title;
 
     private String notes;
-    private LocalDateTime performedAt;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Instant performedAt;
     private Integer durationMinutes;
 
     @Valid

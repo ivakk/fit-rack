@@ -12,6 +12,8 @@ import com.fitrack.workout.util.ClockProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -29,7 +31,9 @@ public class WorkoutService implements WorkoutUseCase {
                 .userId(userId)
                 .title(request.getTitle())
                 .notes(request.getNotes())
-                .performedAt(request.getPerformedAt() != null ? request.getPerformedAt() : now)
+                .performedAt(request.getPerformedAt() != null
+                        ? LocalDateTime.ofInstant(request.getPerformedAt(), ZoneOffset.UTC)
+                        : now)
                 .durationMinutes(request.getDurationMinutes())
                 .exercises(mapExercises(request.getExercises()))
                 .createdAt(now)

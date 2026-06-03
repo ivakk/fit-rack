@@ -7,6 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MongoWorkoutRepository extends MongoRepository<WorkoutDocument, String> {
-    List<WorkoutDocument> findAllByUserIdOrderByPerformedAtDesc(String userId);
+    List<WorkoutDocument> findAllByUserId(String userId);
     Optional<WorkoutDocument> findByIdAndUserId(String id, String userId);
 }

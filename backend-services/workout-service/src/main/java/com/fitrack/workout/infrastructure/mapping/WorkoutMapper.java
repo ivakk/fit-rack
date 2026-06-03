@@ -4,30 +4,48 @@ import com.fitrack.workout.api.dto.ExerciseResponse;
 import com.fitrack.workout.api.dto.WorkoutResponse;
 import com.fitrack.workout.domain.Exercise;
 import com.fitrack.workout.domain.Workout;
-import com.fitrack.workout.infrastructure.mongo.document.ExerciseDocument;
-import com.fitrack.workout.infrastructure.mongo.document.WorkoutDocument;
-import org.mapstruct.Mapper;
+import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 
-@Mapper(componentModel = "spring")
-public interface WorkoutMapper {
+@Component
+public class WorkoutMapper {
 
-    Workout toDomain(WorkoutDocument document);
+    public ExerciseResponse toResponse(Exercise exercise) {
+        if (exercise == null) {
+            return null;
+        }
+        return new ExerciseResponse(
+                exercise.getName(),
+                exercise.getSets(),
+                exercise.getReps(),
+                exercise.getWeightKg(),
+                exercise.getNotes()
+        );
+    }
 
-    WorkoutDocument toDocument(Workout workout);
+    public List<ExerciseResponse> toExerciseResponses(List<Exercise> exercises) {
+        if (exercises == null) {
+            return Collections.emptyList();
+        }
+        return exercises.stream().map(this::toResponse).toList();
+    }
 
-    Exercise toDomain(ExerciseDocument document);
-
-    ExerciseDocument toDocument(Exercise exercise);
-
-    List<ExerciseDocument> toDocuments(List<Exercise> exercises);
-
-    List<Exercise> toDomainExercises(List<ExerciseDocument> documents);
-
-    ExerciseResponse toResponse(Exercise exercise);
-
-    List<ExerciseResponse> toExerciseResponses(List<Exercise> exercises);
-
-    WorkoutResponse toResponse(Workout workout);
+    public WorkoutResponse toResponse(Workout workout) {
+        if (workout == null) {
+            return null;
+        }
+        return new WorkoutResponse(
+                workout.getId(),
+                workout.getUserId(),
+                workout.getTitle(),
+                workout.getNotes(),
+                workout.getPerformedAt(),
+                workout.getDurationMinutes(),
+                toExerciseResponses(workout.getExercises()),
+                workout.getCreatedAt(),
+                workout.getUpdatedAt()
+        );
+    }
 }

@@ -106,6 +106,7 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-fitrack}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-fitrack}
       GATEWAY_TRUSTED_SECRET: ${GATEWAY_TRUSTED_SECRET}
+      WORKOUT_ENCRYPTION_KEY: ${WORKOUT_ENCRYPTION_KEY:-fitrack-dev-workout-encryption-key-32b}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
       interval: 10s

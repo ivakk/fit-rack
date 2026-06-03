@@ -23,11 +23,12 @@ http:
       entryPoints:
         - web
       rule: PathPrefix(`/workouts`) && !Method(`OPTIONS`)
+      # cors first: handles preflight + response headers; do not duplicate CORS in workout-service (docker).
       middlewares:
+        - cors@file
         - strip-client-identity@file
         - iam-forwardauth@file
         - gateway-trusted@file
-        - cors@file
       service: workout
       priority: 10
 

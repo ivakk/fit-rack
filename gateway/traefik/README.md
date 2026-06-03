@@ -23,6 +23,8 @@ Single HTTP entry point: **http://localhost** (port 80).
 
 `OPTIONS` for `/auth` and `/workouts` use dedicated routers (CORS only, no ForwardAuth) so browser preflight succeeds.
 
+All browser API calls use **`http://localhost`** (Traefik port 80), not service ports 8080/8081. CORS is applied by Traefik’s `cors@file` middleware. Workout-service does not register Spring CORS in the `docker` profile (duplicate CORS caused `403 Invalid CORS request` from Spring).
+
 Routes are defined in `dynamic/routes.yml` (file provider), not Docker labels — avoids Traefik failing to discover containers when the Docker socket is unavailable.
 
 ## Verify

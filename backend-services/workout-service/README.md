@@ -63,7 +63,8 @@ Traefik strips client identity headers, IAM validates JWT, workout receives `X-I
 ## Database
 
 - URI (dev): `mongodb://localhost:27017/fitrack_workout`
-- Collection: `workouts` (embedded exercises)
+- Collection: `workouts` — **title, notes, exercises, dates, etc. are AES-256-GCM encrypted** in `ciphertext` (only `userId` + document `id` stay plaintext for queries)
+- Set `WORKOUT_ENCRYPTION_KEY` (min 32 characters) in `.env`; changing the key invalidates existing ciphertext — run `docker compose down -v` after key rotation in dev
 
 ## Tests
 
