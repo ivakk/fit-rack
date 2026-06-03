@@ -49,6 +49,7 @@ public class JjwtTokenProvider implements TokenProvider {
     @Override
     public Claims parse(String jwt) {
         return Jwts.parserBuilder()
+                .requireIssuer(issuer)
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(jwt)

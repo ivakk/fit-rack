@@ -11,6 +11,7 @@ import com.fitrack.iam.application.port.out.TokenProvider;
 import com.fitrack.iam.application.port.out.UserStore;
 import com.fitrack.iam.domain.RefreshToken;
 import com.fitrack.iam.domain.User;
+import com.fitrack.iam.security.SecurityAuditLogger;
 import com.fitrack.iam.util.ClockProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,12 +28,13 @@ public class AuthService implements AuthUseCase {
     private final PasswordHasher hasher;
     private final ClockProvider clock;
     private final DomainEventPublisher events;
+    private final SecurityAuditLogger securityAudit;
 
 
     @Override
     public TokenPairResponse register(RegisterRequest req) {
         users.findByEmail(req.getEmail()).ifPresent(u -> {
-            throw new RuntimeException("Email already in use");
+            throw new EmailAlreadyInUseException();
         });
 
         User user = User.builder()
@@ -57,11 +59,10 @@ public class AuthService implements AuthUseCase {
 
     @Override
     public TokenPairResponse login(LoginRequest req) {
-        User found = users.findByEmail(req.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-
-        if (!hasher.matches(req.getPassword(), found.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+        User found = users.findByEmail(req.getEmail()).orElse(null);
+        if (found == null || !hasher.matches(req.getPassword(), found.getPasswordHash())) {
+            securityAudit.authFailure("login_failed", req.getEmail());
+            throw new InvalidCredentialsException();
         }
         return issue(found);
     }
@@ -69,15 +70,16 @@ public class AuthService implements AuthUseCase {
     @Override
     public TokenPairResponse refresh(RefreshRequest req) {
         RefreshToken token = refreshTokens.findActiveByToken(req.getRefreshToken())
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElse(null);
 
-        if (token.getExpiresAt().isBefore(clock.now())) {
-            throw new RuntimeException("Refresh token expired");
+        if (token == null || token.getExpiresAt().isBefore(clock.now())) {
+            securityAudit.authFailure("refresh_failed", "token");
+            throw new InvalidCredentialsException();
         }
 
         refreshTokens.revoke(token);
         User user = users.findById(token.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(InvalidCredentialsException::new);
 
         return issue(user);
     }
@@ -85,7 +87,7 @@ public class AuthService implements AuthUseCase {
     @Override
     public MeResponse me(String userId) {
         User user = users.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(InvalidCredentialsException::new);
 
         MeResponse response = new MeResponse(
                 user.getId(),
@@ -107,7 +109,7 @@ public class AuthService implements AuthUseCase {
     @Override
     public void deleteAccount(String userId) {
         User user = users.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(InvalidCredentialsException::new);
 
         events.publishUserDeleted(new UserDeletedEvent(
                 user.getId(),

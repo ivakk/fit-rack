@@ -1,12 +1,24 @@
 # Static routes — do not rely on the Docker provider (socket discovery is flaky on some hosts).
 http:
   routers:
+    iam-auth-sensitive:
+      entryPoints:
+        - web
+      rule: Path(`/auth/login`) || Path(`/auth/register`) || Path(`/auth/refresh`)
+      middlewares:
+        - cors@file
+        - security-headers@file
+        - rate-limit-auth@file
+      service: iam
+      priority: 20
+
     iam:
       entryPoints:
         - web
       rule: PathPrefix(`/auth`) && !Method(`OPTIONS`)
       middlewares:
         - cors@file
+        - security-headers@file
       service: iam
       priority: 10
 
@@ -25,6 +37,7 @@ http:
       rule: PathPrefix(`/workouts`) && !Method(`OPTIONS`)
       middlewares:
         - cors@file
+        - security-headers@file
         - strip-client-identity@file
         - iam-forwardauth@file
         - gateway-trusted@file

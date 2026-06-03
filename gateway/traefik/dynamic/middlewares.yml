@@ -17,6 +17,23 @@ http:
         accessControlMaxAge: 100
         addVaryHeader: true
 
+    security-headers:
+      headers:
+        contentTypeNosniff: true
+        frameDeny: true
+        browserXssFilter: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+        customResponseHeaders:
+          X-Content-Type-Options: nosniff
+          X-Frame-Options: DENY
+
+    rate-limit-auth:
+      rateLimit:
+        average: 10
+        period: 1m
+        burst: 20
+
     strip-client-identity:
       headers:
         customRequestHeaders:

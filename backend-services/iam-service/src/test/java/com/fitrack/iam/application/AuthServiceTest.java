@@ -11,6 +11,7 @@ import com.fitrack.iam.application.port.out.TokenProvider;
 import com.fitrack.iam.application.port.out.UserStore;
 import com.fitrack.iam.domain.RefreshToken;
 import com.fitrack.iam.domain.User;
+import com.fitrack.iam.security.SecurityAuditLogger;
 import com.fitrack.iam.util.ClockProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +47,8 @@ class AuthServiceTest {
     ClockProvider clock;
     @Mock
     DomainEventPublisher events;
+    @Mock
+    SecurityAuditLogger securityAudit;
 
     @InjectMocks
     AuthService authService;
@@ -138,7 +141,7 @@ class AuthServiceTest {
         when(users.findById("missing")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.deleteAccount("missing"))
-                .hasMessageContaining("User not found");
+                .isInstanceOf(InvalidCredentialsException.class);
 
         verify(events, never()).publishUserDeleted(any());
         verify(users, never()).deleteById(anyString());

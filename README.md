@@ -136,3 +136,5 @@ make test-gateway      # Live stack smoke test via Traefik
 Backend tests use **Testcontainers** with `mongo:8.0` and RabbitMQ where needed. Frontend tests use **Vitest** and React Testing Library under `src/**/*.test.ts(x)`.
 
 See service READMEs under `backend-services/` and `gateway/traefik/README.md`.
+
+**Security:** OWASP Top 10 controls and production checklist — [`docs/SECURITY.md`](docs/SECURITY.md).

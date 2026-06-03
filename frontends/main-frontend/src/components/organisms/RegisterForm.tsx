@@ -8,6 +8,7 @@ import { Label } from "@/components/atoms/Label";
 import { Input } from "@/components/atoms/Input";
 import { AuthPromptLink } from "@/components/molecules/AuthPromptLink";
 import { FormField } from "@/components/molecules/FormField";
+import { Text } from "@/components/atoms/Text";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -89,6 +90,9 @@ export function RegisterForm() {
         required
         minLength={8}
       />
+      <Text variant="muted" className="text-xs">
+        At least 8 characters with one letter and one number.
+      </Text>
       <Button type="submit" fullWidth disabled={submitting}>
         {submitting ? "Creating account…" : "Create account"}
       </Button>
