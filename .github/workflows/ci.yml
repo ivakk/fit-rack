@@ -68,13 +68,9 @@ jobs:
         working-directory: frontends/main-frontend
         run: npm run test:run
 
-      # Fails the job when high+ issues exist (SQA evidence). Upgrade deps to go green.
-      - name: Dependency vulnerability scan
+      - name: Dependency vulnerability scan (production deps)
         working-directory: frontends/main-frontend
-        continue-on-error: true
-        run: |
-          npm audit --audit-level=high
-          echo "If this step is yellow, document remediation in docs/SQA.md §9."
+        run: npm audit --omit=dev --audit-level=high
 
   contracts:
     name: AsyncAPI contract present

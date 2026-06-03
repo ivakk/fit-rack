@@ -1,4 +1,4 @@
-.PHONY: setup env up down logs test test-gateway restart clean frontend frontend-install
+.PHONY: setup env up down logs test test-gateway test-acceptance restart clean frontend frontend-install
 
 setup: env
 	./scripts/setup.sh
@@ -35,6 +35,10 @@ test:
 
 test-gateway:
 	./scripts/test-gateway.sh
+
+test-acceptance:
+	chmod +x scripts/test-acceptance.sh
+	./scripts/test-acceptance.sh
 
 restart: down up
 

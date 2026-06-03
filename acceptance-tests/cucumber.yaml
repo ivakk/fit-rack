@@ -1,0 +1,10 @@
+# Runs Gherkin from docs/acceptance-scenarios.feature (Fontys BDD / acceptance)
+paths:
+  - ../docs/acceptance-scenarios.feature
+require:
+  - step-definitions/**/*.js
+  - support/**/*.js
+format:
+  - "@cucumber/pretty-formatter"
+  - "json:reports/cucumber-report.json"
+publishQuiet: true

@@ -62,6 +62,7 @@ There are no tombstone or “deleted” flags in MongoDB. After account deletion
 | `make down` | Stop stack |
 | `make test` | Unit + integration tests (IAM, Workout, frontend) |
 | `make test-gateway` | End-to-end gateway smoke test (stack must be up) |
+| `make test-acceptance` | Cucumber BDD tests (`docs/acceptance-scenarios.feature`) |
 | `make logs` | Follow logs |
 | `make clean` | Stop and remove volumes |
 | `make logs-grafana` | Follow Grafana + Prometheus logs |
@@ -139,7 +140,8 @@ If all services are `healthy` / `running` and the smoke test passes, Mongo and T
 
 ```bash
 make test              # Gradle (Testcontainers) + frontend Vitest
-make test-gateway      # Live stack smoke test via Traefik
+make test-acceptance   # Cucumber acceptance (stack up)
+make test-gateway      # bash E2E via Traefik (stack up)
 make load-test-smoke   # k6 performance smoke (stack must be up)
 ```
 
@@ -148,7 +150,8 @@ Backend tests use **Testcontainers** with `mongo:8.0` and RabbitMQ where needed.
 | Topic | Document |
 |-------|----------|
 | **SQA (ISO 25010, test pyramid, CI/CD, measurable criteria)** | [`docs/SQA.md`](docs/SQA.md) |
-| Acceptance scenarios (Gherkin) | [`docs/acceptance-scenarios.feature`](docs/acceptance-scenarios.feature) |
+| Acceptance (Cucumber + Gherkin) | [`acceptance-tests/README.md`](acceptance-tests/README.md) |
+| SonarQube / SonarCloud | [`docs/SONAR.md`](docs/SONAR.md) |
 | Security (OWASP) | [`docs/SECURITY.md`](docs/SECURITY.md) |
 | Load testing | [`load-testing/README.md`](load-testing/README.md) |
 | Monitoring | [`monitoring/README.md`](monitoring/README.md) |

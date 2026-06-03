@@ -1,0 +1,58 @@
+# SonarQube / SonarCloud static analysis (requires repository secrets)
+name: SonarQube
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  sonar:
+    name: SonarCloud analysis
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SONAR_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Backend tests with JaCoCo coverage
+        run: |
+          (cd backend-services/iam-service && ./gradlew test jacocoTestReport --no-daemon)
+          (cd backend-services/workout-service && ./gradlew test jacocoTestReport --no-daemon)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontends/main-frontend/package-lock.json
+
+      - name: Install frontend (TypeScript analysis)
+        working-directory: frontends/main-frontend
+        run: npm ci
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'fitrack' }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+
+      - name: SonarQube Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        continue-on-error: true

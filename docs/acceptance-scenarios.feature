@@ -1,6 +1,6 @@
 # FitTrack acceptance scenarios (BDD / Gherkin)
-# Executable today via: make test-gateway  (scripts/test-gateway.sh)
-# Optional future: Cucumber + REST-assured or Playwright
+# Run: make test-acceptance  (Cucumber → acceptance-tests/, stack must be up)
+# Legacy bash equivalent: make test-gateway
 
 Feature: User registration and authentication
   As a fitness enthusiast

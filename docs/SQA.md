@@ -34,7 +34,7 @@ You cannot maximize every ISO/IEC 25010 characteristic at once. FitTrack priorit
 | High | **Maintainability** | Manual mappers, explicit tests → more code than code-generation-only stacks |
 | Medium | **Performance efficiency** | k6 thresholds are realistic for a student stack, not Netflix-scale SLOs |
 | Lower (dev) | **Portability / compatibility** | Docker Compose on one machine; no multi-cloud HA yet |
-| Deferred | Full **BDD/Cucumber** UI suite | Main journey validated by gateway script + k6 (see §5) |
+| Medium | **BDD API acceptance** (Cucumber) | API scenarios automated; UI still manual exploratory |
 
 Production would tighten trade-offs (TLS, httpOnly cookies, stricter latency SLOs). See [`SECURITY.md`](SECURITY.md).
 
@@ -51,7 +51,7 @@ Reference model: [ISO/IEC 25010](https://iso25000.com/index.php/en/iso-25000-sta
 | **Security** | All `/workouts/*` routes require a valid Bearer JWT; client `X-User-Id` is rejected with HTTP 400 | `WorkoutControllerIntegrationTest`, `scripts/test-gateway.sh` |
 | **Security** | Passwords: min length, letter + digit; BCrypt strength 12; generic login errors | `AuthServiceTest`, `PasswordPolicy` |
 | **Security** | Workout fields encrypted at rest (AES-256-GCM); key ≥ 32 characters in config | `WorkoutEncryptionServiceTest`, compose env validation |
-| **Security** | CI runs `npm audit --audit-level=high` on every build (target: zero high/critical; see §9 for current debt) | GitHub Actions `ci.yml` |
+| **Security** | CI runs `npm audit --omit=dev --audit-level=high` (production deps; Next.js 16) | GitHub Actions `ci.yml` |
 | **Reliability** | IAM and Workout report `UP` on `/actuator/health` when dependencies are ready | Docker healthchecks, Prometheus `up` metric |
 | **Reliability** | Account delete removes IAM user and eventually all workouts (`user.deleted`) | `UserDeletedConsumerTest`, gateway delete flow |
 | **Performance efficiency** | Under k6 smoke (3 VUs, 30s): HTTP failure rate &lt; 10%, p95 latency &lt; 5s | `load-testing/k6/smoke.js` thresholds, `make load-test-smoke` |
@@ -99,7 +99,7 @@ flowchart LR
 |-------|-------------------|
 | **Determine criteria** | This document + [`SECURITY.md`](SECURITY.md) |
 | **Design for quality** | Gateway auth, encryption, events, validation on DTOs |
-| **Validate** | `make test`, CI, `make test-gateway`, k6, Grafana |
+| **Validate** | `make test`, CI, `make test-acceptance`, k6, SonarQube, Grafana |
 | **Improve** | Fix failures from CI/k6/Grafana; refactor with tests green |
 
 QA happens in **requirements** (criteria table), **architecture** (§3), **coding** (TDD-friendly unit tests), **testing** (pyramid below), **CI/CD** (workflows), and **production-like monitoring** (Prometheus/Grafana).
@@ -147,19 +147,25 @@ Run all: `make test`.
 
 | Type | Tool | Scope |
 |------|------|-------|
-| API E2E | `scripts/test-gateway.sh` | Register → workout CRUD → reject `X-User-Id` → account delete |
+| API E2E (bash) | `scripts/test-gateway.sh` | Extended journey incl. re-register after delete |
+| **Acceptance (BDD)** | **Cucumber** (`acceptance-tests/`) | [`docs/acceptance-scenarios.feature`](acceptance-scenarios.feature) |
 | Load E2E | k6 `full-flow.js` / `smoke.js` | Sustained traffic through Traefik |
-| UI E2E | — | Not automated yet; manual exploratory on Next.js UI |
+| UI E2E | — | Manual exploratory on Next.js 16 UI |
 
-`make test-gateway` after `make up`.
+```bash
+make test-acceptance   # Cucumber (preferred for coursework BDD evidence)
+make test-gateway      # bash equivalent with extra checks
+```
 
-### Acceptance / BDD-style scenarios
+After `make up`.
 
-Business scenarios are written in Gherkin for readability (Cucumber-ready). Today they are executed by the gateway script, not by Cucumber JVM:
+### Acceptance / BDD (Cucumber)
 
-- [`docs/acceptance-scenarios.feature`](acceptance-scenarios.feature)
-
-Mapping: each scenario ↔ steps in `scripts/test-gateway.sh`.
+| Artifact | Path |
+|----------|------|
+| Gherkin features | [`docs/acceptance-scenarios.feature`](acceptance-scenarios.feature) |
+| Step definitions | [`acceptance-tests/step-definitions/api.steps.js`](../acceptance-tests/step-definitions/api.steps.js) |
+| JSON report | `acceptance-tests/reports/cucumber-report.json` |
 
 ### Exploratory testing
 
@@ -171,10 +177,11 @@ Manual sessions: new exercise editor flows, token expiry refresh, Grafana during
 
 | Check | FitTrack implementation | When |
 |-------|-------------------------|------|
-| **Static analysis** | `npm run lint` (Next.js ESLint) | Every CI run |
+| **Static analysis** | `npm run lint` (ESLint 9 + `eslint-config-next`) | Every CI run |
+| **Static analysis (deep)** | **SonarQube / SonarCloud** + JaCoCo | [`.github/workflows/sonar.yml`](../.github/workflows/sonar.yml) — see [`SONAR.md`](SONAR.md) |
 | **Unit/integration tests** | Gradle + Vitest | Every CI run |
-| **Security — dependencies** | `npm audit --audit-level=high` | CI |
-| **Security — application** | OWASP-oriented controls in [`SECURITY.md`](SECURITY.md); SAST/DAST tools optional for report | Manual / future SonarQube |
+| **Security — dependencies** | `npm audit --omit=dev --audit-level=high` | CI |
+| **Security — application** | OWASP controls in [`SECURITY.md`](SECURITY.md) | Design + tests |
 | **Performance** | k6 thresholds + Grafana | Local `make load-test*`; optional `validation.yml` workflow |
 | **Code review** | Git PR review (recommended) | Human |
 
@@ -188,16 +195,20 @@ Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 
 1. Build & **unit/integration tests** (IAM, Workout) with Docker for Testcontainers  
 2. Frontend **lint** + **unit tests**  
-3. **npm audit** (high/critical)  
+3. **npm audit** (production deps, high+)  
 4. **AsyncAPI** file present (contract not drifted away)
+
+### SonarQube (push/PR when configured)
+
+Workflow: [`.github/workflows/sonar.yml`](../.github/workflows/sonar.yml) — requires `SONAR_TOKEN` and `SONAR_ORGANIZATION` secrets ([`SONAR.md`](SONAR.md)).
 
 ### Validation pipeline (staging-like, manual or main branch)
 
 Workflow: [`.github/workflows/validation.yml`](../.github/workflows/validation.yml)
 
 1. `docker compose up` — build stack  
-2. `scripts/test-gateway.sh` — acceptance journey  
-3. Optional: k6 smoke  
+2. **Cucumber** — `docs/acceptance-scenarios.feature` via `make test-acceptance`  
+3. Optional: k6 smoke (manual workflow dispatch)  
 
 Pipeline results and k6 JSON (`load-testing/results/`) are **evidence of quality** for your portfolio.
 
@@ -205,7 +216,8 @@ Pipeline results and k6 JSON (`load-testing/results/`) are **evidence of quality
 
 ```bash
 make test              # Fast CI equivalent
-make test-gateway      # E2E acceptance
+make test-acceptance   # Cucumber BDD acceptance
+make test-gateway      # bash E2E (extra checks)
 make load-test-smoke   # Performance smoke
 make monitoring        # Observe during load
 ```
@@ -217,7 +229,7 @@ make monitoring        # Observe during load
 | Practice | In FitTrack |
 |----------|-------------|
 | **TDD** | Domain and security tests written alongside features (e.g. encryption, delete purge) |
-| **BDD** | Gherkin scenarios documented; executable via gateway script |
+| **BDD** | Gherkin in `docs/acceptance-scenarios.feature`; executed by Cucumber (`make test-acceptance`) |
 | **Continuous refactoring** | MapStruct → manual mapper when generated code failed; tests locked behavior |
 | **Pair programming / review** | Recommended for PRs; not enforced in repo |
 
@@ -229,11 +241,11 @@ Honest assessment for coursework reflection:
 
 | Item | Status |
 |------|--------|
-| SonarQube / SpotBugs in CI | Not wired — add for deeper static analysis |
-| Cucumber runner | Scenarios documented; JVM Cucumber optional |
+| SonarQube quality gate strict pass | Wire secrets; tune quality gate in SonarCloud |
 | Playwright UI E2E | Not implemented |
-| OWASP Dependency-Check (Gradle) | Use CI audit + manual `./gradlew dependencyUpdates` |
-| npm audit (high/critical in devDependencies) | CI runs scan; upgrade Next/Vitest/eslint chain to clear advisories |
+| OWASP Dependency-Check (Gradle) | Use CI npm audit + manual `./gradlew dependencyUpdates` |
+| Vitest 4 upgrade | Blocked on Rolldown/JSX in tests; dev-only CVE (Vitest UI server) documented |
+| Next bundled PostCSS (moderate) | Transitive; monitor Next releases |
 | Production DAST | Out of scope for local Compose |
 
 ---
@@ -250,6 +262,7 @@ Honest assessment for coursework reflection:
 | SonarQube | https://www.sonarqube.org |
 | k6 (load) | https://k6.io |
 | Cucumber | https://cucumber.io |
+| SonarCloud setup | [`SONAR.md`](SONAR.md) |
 | OWASP FitTrack mapping | [`SECURITY.md`](SECURITY.md) |
 | Monitoring | [`../monitoring/README.md`](../monitoring/README.md) |
 | Load testing | [`../load-testing/README.md`](../load-testing/README.md) |
@@ -262,6 +275,7 @@ Honest assessment for coursework reflection:
 - [ ] Architecture traceability in §3  
 - [ ] Test pyramid with repo paths in §5  
 - [ ] CI workflow green on GitHub  
-- [ ] `make test-gateway` passes on running stack  
+- [ ] `make test-acceptance` (Cucumber) passes on running stack  
+- [ ] SonarQube dashboard shows analysis (if secrets configured)  
 - [ ] k6 smoke thresholds pass  
 - [ ] Grafana shows services UP during demo  

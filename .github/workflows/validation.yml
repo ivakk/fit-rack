@@ -37,8 +37,14 @@ jobs:
           docker compose ps
           sleep 15
 
-      - name: Gateway acceptance test (maps to docs/acceptance-scenarios.feature)
-        run: ./scripts/test-gateway.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cucumber acceptance (docs/acceptance-scenarios.feature)
+        env:
+          GATEWAY_URL: http://localhost
+        run: chmod +x scripts/test-acceptance.sh && ./scripts/test-acceptance.sh
 
       - name: Tear down
         if: always()
