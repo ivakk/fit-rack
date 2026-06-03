@@ -1,0 +1,47 @@
+http:
+  middlewares:
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Authorization
+          - Content-Type
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://127.0.0.1:3000"
+          - "http://localhost:5173"
+          - "http://localhost"
+          - "http://127.0.0.1"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    strip-client-identity:
+      headers:
+        customRequestHeaders:
+          X-User-Id: ""
+          X-Internal-User-Id: ""
+          X-Internal-User-Email: ""
+          X-Internal-User-Role: ""
+          X-Gateway-Trusted: ""
+
+    iam-forwardauth:
+      forwardAuth:
+        address: "http://iam:8080/auth/forward-auth"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Internal-User-Id
+          - X-Internal-User-Email
+          - X-Internal-User-Role
+        authRequestHeaders:
+          - Authorization
+
+    gateway-trusted:
+      headers:
+        customRequestHeaders:
+          X-Gateway-Trusted: "fitrack-dev-gateway"

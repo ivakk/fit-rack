@@ -1,0 +1,34 @@
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Node / TypeScript (frontends, NestJS services, packages)
+node_modules/
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Python (packages, future services)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Java (per-service; iam-service also has its own .gitignore)
+**/build/
+**/.gradle/
+
+# Local runtime data
+**/.local/
+
+# Generated contract code (when codegen is wired)
+contracts/codegen/out/

@@ -1,0 +1,15 @@
+api:
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  # Routes are defined in dynamic/routes.yml (Docker provider is unreliable on some Desktop setups).
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+log:
+  level: INFO

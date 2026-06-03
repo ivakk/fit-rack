@@ -1,0 +1,52 @@
+# Static routes — do not rely on the Docker provider (socket discovery is flaky on some hosts).
+http:
+  routers:
+    iam:
+      entryPoints:
+        - web
+      rule: PathPrefix(`/auth`) && !Method(`OPTIONS`)
+      middlewares:
+        - cors@file
+      service: iam
+      priority: 10
+
+    iam-options:
+      entryPoints:
+        - web
+      rule: PathPrefix(`/auth`) && Method(`OPTIONS`)
+      middlewares:
+        - cors@file
+      service: iam
+      priority: 100
+
+    workout:
+      entryPoints:
+        - web
+      rule: PathPrefix(`/workouts`) && !Method(`OPTIONS`)
+      middlewares:
+        - strip-client-identity@file
+        - iam-forwardauth@file
+        - gateway-trusted@file
+        - cors@file
+      service: workout
+      priority: 10
+
+    workout-options:
+      entryPoints:
+        - web
+      rule: PathPrefix(`/workouts`) && Method(`OPTIONS`)
+      middlewares:
+        - cors@file
+      service: workout
+      priority: 100
+
+  services:
+    iam:
+      loadBalancer:
+        servers:
+          - url: http://iam:8080
+
+    workout:
+      loadBalancer:
+        servers:
+          - url: http://workout:8080

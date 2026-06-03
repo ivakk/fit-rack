@@ -1,0 +1,42 @@
+asyncapi: 3.0.0
+info:
+  title: FitTrack Workout Events
+  version: 1.0.0
+  description: Domain events published when workouts change (future publishers).
+
+channels:
+  workoutCreated:
+    address: fitrack.events/workout.created
+    messages:
+      workoutCreated:
+        name: WorkoutCreated
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/WorkoutCreatedPayload'
+
+operations:
+  publishWorkoutCreated:
+    action: send
+    channel:
+      $ref: '#/channels/workoutCreated'
+    summary: Workout service publishes after a workout is saved (planned)
+
+components:
+  schemas:
+    WorkoutCreatedPayload:
+      type: object
+      required:
+        - workoutId
+        - userId
+        - title
+        - occurredAt
+      properties:
+        workoutId:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time

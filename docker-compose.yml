@@ -1,0 +1,139 @@
+# FitTrack local stack — run: make setup   or: docker compose up --build
+#
+# API: http://localhost (Traefik). Use Authorization: Bearer only for /workouts.
+# Do not send X-User-Id from clients.
+name: fitrack
+
+services:
+  mongo:
+    image: mongo:8.0
+    networks: [fitrack-net]
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    hostname: rabbitmq
+    networks: [fitrack-net]
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fitrack}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-fitrack}
+    volumes:
+      - ./event-management/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./event-management/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  traefik:
+    image: traefik:v3.3
+    container_name: fitrack-traefik
+    networks: [fitrack-net]
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "${GATEWAY_PORT:-80}:80"
+      - "${TRAEFIK_DASHBOARD_PORT:-8090}:8080"
+    volumes:
+      - ./gateway/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./gateway/traefik/dynamic:/etc/traefik/dynamic:ro
+    depends_on:
+      iam:
+        condition: service_healthy
+      workout:
+        condition: service_healthy
+
+  iam:
+    build:
+      context: ./backend-services/iam-service
+      dockerfile: Dockerfile
+    container_name: fitrack-iam
+    networks: [fitrack-net]
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/${MONGO_IAM_DATABASE:-fitrack_iam}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-fitrack}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-fitrack}
+      SECURITY_JWT_SECRET: ${IAM_JWT_SECRET}
+      SECURITY_JWT_ISSUER: ${IAM_JWT_ISSUER:-fitrack-iam}
+      SECURITY_JWT_ACCESS_TTL_MINUTES: ${IAM_JWT_ACCESS_TTL_MINUTES:-60}
+    ports:
+      - "${IAM_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  workout:
+    build:
+      context: ./backend-services/workout-service
+      dockerfile: Dockerfile
+    container_name: fitrack-workout
+    networks: [fitrack-net]
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/${MONGO_WORKOUT_DATABASE:-fitrack_workout}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-fitrack}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-fitrack}
+      GATEWAY_TRUSTED_SECRET: ${GATEWAY_TRUSTED_SECRET}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    image: node:22-alpine
+    container_name: fitrack-frontend
+    working_dir: /app
+    networks: [fitrack-net]
+    volumes:
+      - ./frontends/main-frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm install && WATCHPACK_POLLING=true npm run dev"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${GATEWAY_URL:-http://localhost}
+    depends_on:
+      traefik:
+        condition: service_started
+
+networks:
+  fitrack-net:
+    name: fitrack-net
+
+volumes:
+  mongo-data:
+  frontend_node_modules:

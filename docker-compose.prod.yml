@@ -1,0 +1,17 @@
+# Production overrides. Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Extend with image tags, secrets, resource limits, and external networks as services are added.
+services:
+  traefik:
+    restart: unless-stopped
+    # Enable TLS entrypoint and secure dashboard in production.
+
+  rabbitmq:
+    restart: unless-stopped
+
+  iam:
+    restart: unless-stopped
+    # image: ghcr.io/your-org/fitrack-iam:${IAM_IMAGE_TAG:-latest}
+
+  workout:
+    restart: unless-stopped
+    # image: ghcr.io/your-org/fitrack-workout:${WORKOUT_IMAGE_TAG:-latest}

@@ -1,0 +1,26 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  clearTokens,
+  getAccessToken,
+  isLoggedIn,
+  saveTokens,
+} from "./auth-storage";
+
+describe("auth-storage", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("saveTokens and getAccessToken round-trip", () => {
+    saveTokens({ accessToken: "access-1", refreshToken: "refresh-1" });
+    expect(getAccessToken()).toBe("access-1");
+    expect(isLoggedIn()).toBe(true);
+  });
+
+  it("clearTokens removes session", () => {
+    saveTokens({ accessToken: "a", refreshToken: "r" });
+    clearTokens();
+    expect(getAccessToken()).toBeNull();
+    expect(isLoggedIn()).toBe(false);
+  });
+});

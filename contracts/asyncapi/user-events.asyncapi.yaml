@@ -1,0 +1,49 @@
+asyncapi: 3.0.0
+info:
+  title: FitTrack User Events
+  version: 1.0.0
+  description: Domain events published when user lifecycle changes in IAM.
+
+channels:
+  userRegistered:
+    address: fitrack.events/user.registered
+    messages:
+      userRegistered:
+        name: UserRegistered
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/UserRegisteredPayload'
+
+operations:
+  publishUserRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/userRegistered'
+    summary: IAM publishes after successful registration
+
+components:
+  schemas:
+    UserRegisteredPayload:
+      type: object
+      required:
+        - userId
+        - email
+        - fullName
+        - role
+        - occurredAt
+      properties:
+        userId:
+          type: string
+          description: MongoDB user id
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          type: string
+          example: MEMBER
+        occurredAt:
+          type: string
+          format: date-time
+          description: ISO-8601 UTC timestamp
