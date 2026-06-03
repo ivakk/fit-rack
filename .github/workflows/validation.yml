@@ -1,0 +1,79 @@
+# Slower validation — stack E2E + optional k6 smoke (Fontys SQA: deploy-like env, acceptance, performance)
+name: Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  gateway-e2e:
+    name: Docker stack + gateway acceptance test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          ./scripts/render-traefik.sh
+
+      - name: Start stack
+        run: docker compose up --build -d mongodb rabbitmq iam workout traefik
+
+      - name: Wait for healthy services
+        run: |
+          for i in $(seq 1 60); do
+            if docker compose ps --format json | grep -q '"Health":"healthy"' 2>/dev/null; then
+              healthy=$(docker compose ps | grep -c healthy || true)
+              if [ "${healthy:-0}" -ge 2 ]; then
+                echo "Services reporting healthy."
+                break
+              fi
+            fi
+            sleep 5
+          done
+          docker compose ps
+          sleep 15
+
+      - name: Gateway acceptance test (maps to docs/acceptance-scenarios.feature)
+        run: ./scripts/test-gateway.sh
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  k6-smoke:
+    name: k6 performance smoke (optional evidence)
+    runs-on: ubuntu-latest
+    needs: gateway-e2e
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          ./scripts/render-traefik.sh
+
+      - name: Start stack for load test
+        run: docker compose --profile loadtest up --build -d mongodb rabbitmq iam workout traefik
+
+      - name: Wait for stack
+        run: sleep 45
+
+      - name: k6 smoke via Traefik
+        run: |
+          docker compose --profile loadtest run --rm \
+            -e K6_GATEWAY_URL=http://traefik:80 \
+            -e K6_VUS=3 \
+            -e K6_DURATION=30s \
+            -e K6_SETUP_USERS=1 \
+            -e K6_SETUP_DELAY=0 \
+            k6 run /scripts/k6/smoke.js
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile loadtest down -v

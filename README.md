@@ -135,15 +135,24 @@ curl -fsS http://localhost/actuator/health   # may 404 without route — use:
 
 If all services are `healthy` / `running` and the smoke test passes, Mongo and Traefik messages in `docker compose logs -f` are informational only.
 
-## Testing
+## Testing & quality assurance
 
 ```bash
 make test              # Gradle (Testcontainers) + frontend Vitest
 make test-gateway      # Live stack smoke test via Traefik
+make load-test-smoke   # k6 performance smoke (stack must be up)
 ```
 
 Backend tests use **Testcontainers** with `mongo:8.0` and RabbitMQ where needed. Frontend tests use **Vitest** and React Testing Library under `src/**/*.test.ts(x)`.
 
-See service READMEs under `backend-services/` and `gateway/traefik/README.md`.
+| Topic | Document |
+|-------|----------|
+| **SQA (ISO 25010, test pyramid, CI/CD, measurable criteria)** | [`docs/SQA.md`](docs/SQA.md) |
+| Acceptance scenarios (Gherkin) | [`docs/acceptance-scenarios.feature`](docs/acceptance-scenarios.feature) |
+| Security (OWASP) | [`docs/SECURITY.md`](docs/SECURITY.md) |
+| Load testing | [`load-testing/README.md`](load-testing/README.md) |
+| Monitoring | [`monitoring/README.md`](monitoring/README.md) |
 
-**Security:** OWASP Top 10 controls and production checklist — [`docs/SECURITY.md`](docs/SECURITY.md).
+**CI:** GitHub Actions runs fast checks on every push (`.github/workflows/ci.yml`); full gateway validation on `main` (`.github/workflows/validation.yml`).
+
+See service READMEs under `backend-services/` and `gateway/traefik/README.md`.
