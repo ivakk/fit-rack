@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 .env
 .env.local
 .env.*.local
@@ -8,14 +7,14 @@
 .vscode/
 *.iml
 
-# Node / TypeScript (frontends, NestJS services, packages)
+# Node / TypeScript
 node_modules/
 dist/
 .next/
 .turbo/
 *.tsbuildinfo
 
-# Python (packages, future services)
+# Python
 __pycache__/
 *.py[cod]
 .venv/
@@ -24,38 +23,15 @@ venv/
 .mypy_cache/
 *.egg-info/
 
-# Java (per-service; iam-service also has its own .gitignore)
+# Java
 **/build/
 **/.gradle/
 
 # Local runtime data
 **/.local/
 
-# Generated contract code (when codegen is wired)
+# Generated contract code
 contracts/codegen/out/
-=======
-# Compiled class file
-*.class
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
->>>>>>> 06d99f179729d2fff9b37067ff537f2a3c8330fb
+# Load test exports (keep directory via .gitkeep)
+load-testing/results/*.json

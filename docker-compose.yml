@@ -153,6 +153,24 @@ services:
     depends_on:
       - prometheus
 
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: [loadtest]
+    networks: [fitrack-net]
+    volumes:
+      - ./load-testing/k6:/scripts/k6:ro
+      - ./load-testing/results:/scripts/results
+    environment:
+      K6_GATEWAY_URL: http://traefik:80
+    entrypoint: ["k6"]
+    depends_on:
+      traefik:
+        condition: service_started
+      iam:
+        condition: service_healthy
+      workout:
+        condition: service_healthy
+
   frontend:
     image: node:22-alpine
     container_name: fitrack-frontend

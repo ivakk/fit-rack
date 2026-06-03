@@ -66,6 +66,8 @@ There are no tombstone or “deleted” flags in MongoDB. After account deletion
 | `make clean` | Stop and remove volumes |
 | `make logs-grafana` | Follow Grafana + Prometheus logs |
 | `make monitoring` | Start/rebuild IAM, Workout, Prometheus, Grafana |
+| `make load-test-smoke` | Quick k6 smoke test via Traefik (30s) |
+| `make load-test` | Full k6 load test via Traefik (see `load-testing/README.md`) |
 | `make frontend` | Run Next.js dev server locally (backend must be up) |
 
 ## Repository layout
@@ -82,6 +84,7 @@ fitrack/
 │   └── workout-service/
 ├── frontends/main-frontend/   # Next.js (atomic design)
 ├── monitoring/              # Prometheus + Grafana (see monitoring/README.md)
+├── load-testing/            # k6 load tests via Traefik (see load-testing/README.md)
 ├── scripts/setup.sh
 ├── scripts/test-all.sh
 └── Makefile

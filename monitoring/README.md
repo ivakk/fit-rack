@@ -26,7 +26,18 @@ Metrics endpoints are on the **Docker network only** — not routed through Trae
 
 Open Grafana → **Dashboards** → **FitTrack** folder → **FitTrack overview**.
 
-Panels: service up/down, HTTP request rate, 5xx rate, JVM heap.
+Panels include:
+
+- Service **UP** (IAM, Workout, RabbitMQ, Prometheus)
+- **HTTP** request rate, rate by outcome (2xx/4xx/5xx), avg/max latency, in-flight requests
+- **5xx / 4xx** panels use `noValue: 0` — a flat line at **0** means healthy (no errors), not “no data”
+- **MongoDB** command rate, **JVM** heap/GC/CPU, **RabbitMQ** publish/deliver, **log** errors/warnings
+
+After editing the dashboard JSON, restart Grafana or wait ~10s for file provisioning to reload:
+
+```bash
+docker compose restart grafana
+```
 
 ## Configuration
 
