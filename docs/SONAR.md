@@ -20,7 +20,7 @@ GitHub’s runners are in the cloud. They **cannot** connect to `http://localhos
 
 1. Go to https://sonarcloud.io → **Log in with GitHub**
 2. **+** → **Analyze new project** → select **fitrack**
-3. Project key: **`fitrack`** (matches `sonar-project.properties`)
+3. Project key: **`ivakk_fitrack`** (matches `build.gradle`)
 
 ### 2. Bind GitHub to SonarCloud (required for commits / PR checks)
 
@@ -28,7 +28,7 @@ SonarCloud only links analyses to GitHub commits when the **SonarCloud GitHub Ap
 
 1. **GitHub:** https://github.com/apps/sonarcloud → **Configure** → grant access to your **fitrack** repo (or all repos in org `ivakk`)
 2. **SonarCloud:** Organization **Administration** → **Organization settings** → confirm GitHub is connected
-3. **SonarCloud:** Project **fitrack** → **Administration** → **GitHub** → confirm repository binding shows **BOUND** (not `NONEXISTENT`)
+3. **SonarCloud:** Project **ivakk_fitrack** → **Administration** → **GitHub** → confirm repository binding shows **BOUND** (not `NONEXISTENT`)
 
 Without this, scans may upload but **won’t appear on commits** or PRs in GitHub.
 
@@ -45,7 +45,7 @@ Do **not** set `SONAR_HOST_URL` to `localhost` — CI always uses `https://sonar
 Project key and organization are in root [`build.gradle`](../build.gradle):
 
 ```gradle
-property 'sonar.projectKey', 'fitrack'
+property 'sonar.projectKey', 'ivakk_fitrack'
 property 'sonar.organization', 'ivakk'
 ```
 
@@ -57,7 +57,7 @@ SonarCloud enables **Automatic Analysis** by default when you import a repo. Aut
 
 > *A few extra steps are needed for SonarQube Cloud to analyze your code coverage.*
 
-1. Open https://sonarcloud.io → your org → project **fitrack**
+1. Open https://sonarcloud.io → your org → project **ivakk_fitrack**
 2. **Administration** → **Analysis Method**
 3. Turn **off** “SonarCloud Automatic Analysis”
 4. Keep only **CI-based analysis** (your GitHub Actions workflow)
@@ -68,7 +68,7 @@ If you don’t see **Administration**, restore project admin: Organization **Adm
 
 The **SonarQube** workflow runs automatically on push/PR to `main`, `master`, or `develop`.
 
-View results: https://sonarcloud.io → your organization → **fitrack**
+View results: https://sonarcloud.io → your organization → **ivakk_fitrack**
 
 ---
 
@@ -116,6 +116,7 @@ Coverage reports:
 | Workflow fails before sonar | Fix failing tests first — Sonar runs only after `build` succeeds |
 | Scan log: `Detected project binding: NONEXISTENT` | Re-import/bind repo in SonarCloud or reinstall GitHub App |
 | Scan fails: authentication | Regenerate `SONAR_TOKEN` on SonarCloud |
+| Wrong project / no activity updates | Project key must be **`ivakk_fitrack`** in `build.gradle` (not `fitrack`) |
 | **“A few extra steps are needed…”** | **Disable Automatic Analysis** (see step 4 above) |
 | Coverage still empty | Ensure frontend `test:coverage` runs before `./gradlew build sonar` |
 | Still want local scan | `make sonar-local` |

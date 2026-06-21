@@ -4,7 +4,7 @@ plugins {
 
 sonar {
     properties {
-        property 'sonar.projectKey', 'fitrack'
+        property 'sonar.projectKey', 'ivakk_fitrack'
         property 'sonar.organization', 'ivakk'
         property 'sonar.host.url', System.getenv('SONAR_HOST_URL') ?: 'https://sonarcloud.io'
     }
