@@ -77,11 +77,17 @@ SONAR_HOST_URL=http://localhost:9000 SONAR_TOKEN=... ./scripts/sonar-local.sh
 [`.github/workflows/sonar.yml`](../.github/workflows/sonar.yml):
 
 1. Gradle tests + JaCoCo (IAM + Workout)
-2. `npm ci` (frontend TypeScript analysis)
-3. SonarCloud scan
+2. Vitest with LCOV (frontend)
+3. SonarCloud scan (monorepo: `iam`, `workout`, `frontend` modules)
 4. Quality gate (informational; `continue-on-error: true`)
 
-Coverage: `backend-services/*/build/reports/jacoco/test/jacocoTestReport.xml`
+Coverage reports:
+
+| Module | Report |
+|--------|--------|
+| IAM | `backend-services/iam-service/build/reports/jacoco/test/jacocoTestReport.xml` |
+| Workout | `backend-services/workout-service/build/reports/jacoco/test/jacocoTestReport.xml` |
+| Frontend | `frontends/main-frontend/coverage/lcov.info` |
 
 ---
 
@@ -92,6 +98,8 @@ Coverage: `backend-services/*/build/reports/jacoco/test/jacocoTestReport.xml`
 | Workflow invalid / skipped | Set `SONAR_ORGANIZATION` variable |
 | Scan fails: authentication | Regenerate `SONAR_TOKEN` on SonarCloud |
 | “Cannot reach localhost” | Use `https://sonarcloud.io` in CI, not localhost |
+| Coverage shows 0% / n/a | Push latest `sonar-project.properties` (monorepo modules). CI must generate JaCoCo + LCOV before scan — check “Verify coverage reports” step |
+| Coverage only on one module | In SonarCloud, open **iam**, **workout**, or **frontend** sub-modules under the project |
 | Want to disable CI Sonar | Set variable `SONAR_ENABLED=false` |
 | Still want local SonarQube | `make sonar-local` — separate from CI |
 

@@ -13,9 +13,12 @@ if [ -z "$SONAR_TOKEN" ]; then
   exit 1
 fi
 
-echo "==> JaCoCo coverage"
+echo "==> JaCoCo coverage (backends)"
 (cd backend-services/iam-service && ./gradlew test jacocoTestReport --no-daemon -q)
 (cd backend-services/workout-service && ./gradlew test jacocoTestReport --no-daemon -q)
+
+echo "==> LCOV coverage (frontend)"
+(cd frontends/main-frontend && npm ci --silent && npm run test:coverage)
 
 echo "==> Sonar scanner → $SONAR_HOST_URL"
 docker run --rm \

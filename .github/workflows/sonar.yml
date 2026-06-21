@@ -49,9 +49,25 @@ jobs:
           cache: npm
           cache-dependency-path: frontends/main-frontend/package-lock.json
 
-      - name: Install frontend (TypeScript analysis)
+      - name: Frontend tests with LCOV coverage
         working-directory: frontends/main-frontend
-        run: npm ci
+        run: |
+          npm ci
+          npm run test:coverage
+
+      - name: Verify coverage reports
+        run: |
+          set -euo pipefail
+          for report in \
+            backend-services/iam-service/build/reports/jacoco/test/jacocoTestReport.xml \
+            backend-services/workout-service/build/reports/jacoco/test/jacocoTestReport.xml \
+            frontends/main-frontend/coverage/lcov.info; do
+            if [ ! -s "$report" ]; then
+              echo "::error::Missing or empty coverage report: $report"
+              exit 1
+            fi
+            echo "OK $report ($(wc -c < "$report") bytes)"
+          done
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
