@@ -146,4 +146,99 @@ class AuthServiceTest {
         verify(events, never()).publishUserDeleted(any());
         verify(users, never()).deleteById(anyString());
     }
+
+    @Test
+    void login_returnsTokensForValidCredentials() {
+        User user = User.builder()
+                .id("user-1")
+                .email("a@test.com")
+                .passwordHash("hashed")
+                .role("MEMBER")
+                .build();
+        when(users.findByEmail("a@test.com")).thenReturn(Optional.of(user));
+        when(hasher.matches("secret", "hashed")).thenReturn(true);
+        when(clock.now()).thenReturn(NOW);
+        when(tokens.createAccessToken("user-1", "a@test.com", "MEMBER")).thenReturn("access");
+        when(refreshTokens.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        LoginRequest req = new LoginRequest();
+        req.setEmail("a@test.com");
+        req.setPassword("secret");
+
+        var response = authService.login(req);
+
+        assertThat(response.getAccessToken()).isEqualTo("access");
+        assertThat(response.getRefreshToken()).isNotBlank();
+    }
+
+    @Test
+    void refresh_rotatesTokenForActiveRefreshToken() {
+        RefreshToken existing = RefreshToken.builder()
+                .userId("user-1")
+                .token("refresh-old")
+                .expiresAt(NOW.plusDays(1))
+                .revoked(false)
+                .build();
+        User user = User.builder().id("user-1").email("a@test.com").role("MEMBER").build();
+
+        when(refreshTokens.findActiveByToken("refresh-old")).thenReturn(Optional.of(existing));
+        when(clock.now()).thenReturn(NOW);
+        when(users.findById("user-1")).thenReturn(Optional.of(user));
+        when(tokens.createAccessToken("user-1", "a@test.com", "MEMBER")).thenReturn("access-new");
+        when(refreshTokens.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.fitrack.iam.api.dto.RefreshRequest req = new com.fitrack.iam.api.dto.RefreshRequest();
+        req.setRefreshToken("refresh-old");
+
+        var response = authService.refresh(req);
+
+        assertThat(response.getAccessToken()).isEqualTo("access-new");
+        verify(refreshTokens).revoke(existing);
+    }
+
+    @Test
+    void refresh_rejectsExpiredToken() {
+        RefreshToken expired = RefreshToken.builder()
+                .userId("user-1")
+                .token("refresh-old")
+                .expiresAt(NOW.minusMinutes(1))
+                .revoked(false)
+                .build();
+        when(refreshTokens.findActiveByToken("refresh-old")).thenReturn(Optional.of(expired));
+        when(clock.now()).thenReturn(NOW);
+
+        com.fitrack.iam.api.dto.RefreshRequest req = new com.fitrack.iam.api.dto.RefreshRequest();
+        req.setRefreshToken("refresh-old");
+
+        assertThatThrownBy(() -> authService.refresh(req))
+                .isInstanceOf(InvalidCredentialsException.class);
+        verify(securityAudit).authFailure("refresh_failed", "token");
+    }
+
+    @Test
+    void me_returnsUserProfile() {
+        User user = User.builder()
+                .id("user-1")
+                .email("a@test.com")
+                .fullName("Alex")
+                .role("MEMBER")
+                .phoneNumber("+1")
+                .gender("other")
+                .build();
+        when(users.findById("user-1")).thenReturn(Optional.of(user));
+
+        var response = authService.me("user-1");
+
+        assertThat(response.getEmail()).isEqualTo("a@test.com");
+        assertThat(response.getFullName()).isEqualTo("Alex");
+    }
+
+    @Test
+    void userExists_reflectsStoreLookup() {
+        when(users.findById("user-1")).thenReturn(Optional.of(User.builder().build()));
+        when(users.findById("missing")).thenReturn(Optional.empty());
+
+        assertThat(authService.userExists("user-1")).isTrue();
+        assertThat(authService.userExists("missing")).isFalse();
+    }
 }

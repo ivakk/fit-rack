@@ -100,4 +100,66 @@ class WorkoutServiceTest {
         assertThatThrownBy(() -> workoutService.get("u1", "w1"))
                 .isInstanceOf(WorkoutNotFoundException.class);
     }
+
+    @Test
+    void list_mapsAllWorkoutsForUser() {
+        Workout w1 = Workout.builder().id("w1").userId("u1").title("A").build();
+        Workout w2 = Workout.builder().id("w2").userId("u1").title("B").build();
+        when(workoutStore.findAllByUserId("u1")).thenReturn(List.of(w1, w2));
+        when(mapper.toResponse(w1)).thenReturn(new WorkoutResponse("w1", "u1", "A", null, NOW, null, List.of(), NOW, NOW));
+        when(mapper.toResponse(w2)).thenReturn(new WorkoutResponse("w2", "u1", "B", null, NOW, null, List.of(), NOW, NOW));
+
+        List<WorkoutResponse> result = workoutService.list("u1");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getTitle()).isEqualTo("A");
+    }
+
+    @Test
+    void delete_removesOwnedWorkout() {
+        Workout existing = Workout.builder().id("w1").userId("u1").title("Leg day").build();
+        when(workoutStore.findByIdAndUserId("w1", "u1")).thenReturn(Optional.of(existing));
+
+        workoutService.delete("u1", "w1");
+
+        verify(workoutStore).delete(existing);
+    }
+
+    @Test
+    void create_usesNowWhenPerformedAtMissing() {
+        when(clock.now()).thenReturn(NOW);
+        Workout saved = Workout.builder().id("w1").userId("u1").title("Run").performedAt(NOW).build();
+        when(workoutStore.save(any(Workout.class))).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(new WorkoutResponse("w1", "u1", "Run", null, NOW, null, List.of(), NOW, NOW));
+
+        CreateWorkoutRequest req = new CreateWorkoutRequest();
+        req.setTitle("Run");
+
+        workoutService.create("u1", req);
+
+        verify(workoutStore).save(org.mockito.ArgumentMatchers.argThat(w ->
+                w.getPerformedAt().equals(NOW) && w.getTitle().equals("Run")));
+    }
+
+    @Test
+    void update_titleOnly_leavesOtherFields() {
+        when(clock.now()).thenReturn(NOW);
+        Workout existing = Workout.builder()
+                .id("w1")
+                .userId("u1")
+                .title("Old")
+                .notes("Notes")
+                .build();
+        when(workoutStore.findByIdAndUserId("w1", "u1")).thenReturn(Optional.of(existing));
+        when(workoutStore.save(existing)).thenReturn(existing);
+        when(mapper.toResponse(existing)).thenReturn(new WorkoutResponse("w1", "u1", "New", "Notes", NOW, null, List.of(), NOW, NOW));
+
+        UpdateWorkoutRequest req = new UpdateWorkoutRequest();
+        req.setTitle("New");
+
+        workoutService.update("u1", "w1", req);
+
+        assertThat(existing.getTitle()).isEqualTo("New");
+        assertThat(existing.getNotes()).isEqualTo("Notes");
+    }
 }

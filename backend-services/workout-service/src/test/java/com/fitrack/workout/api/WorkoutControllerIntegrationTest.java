@@ -13,8 +13,10 @@ import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -66,5 +68,70 @@ class WorkoutControllerIntegrationTest {
 		mockMvc.perform(get("/workouts"))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.error").exists());
+	}
+
+	@Test
+	void getUpdateAndDeleteWorkout() throws Exception {
+		String createBody = mockMvc.perform(post("/workouts")
+						.header("X-User-Id", "user-crud")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"title": "Push day", "durationMinutes": 50}
+								"""))
+				.andExpect(status().isCreated())
+				.andReturn()
+				.getResponse()
+				.getContentAsString();
+
+		String workoutId = createBody.replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+		mockMvc.perform(get("/workouts/" + workoutId).header("X-User-Id", "user-crud"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.title").value("Push day"));
+
+		mockMvc.perform(put("/workouts/" + workoutId)
+						.header("X-User-Id", "user-crud")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"title": "Push day updated"}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.title").value("Push day updated"));
+
+		mockMvc.perform(delete("/workouts/" + workoutId).header("X-User-Id", "user-crud"))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/workouts/" + workoutId).header("X-User-Id", "user-crud"))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void rejectsEmptyTitle() throws Exception {
+		mockMvc.perform(post("/workouts")
+						.header("X-User-Id", "user-123")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"title": ""}
+								"""))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void cannotAccessAnotherUsersWorkout() throws Exception {
+		String createBody = mockMvc.perform(post("/workouts")
+						.header("X-User-Id", "owner-user")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"title": "Private session"}
+								"""))
+				.andExpect(status().isCreated())
+				.andReturn()
+				.getResponse()
+				.getContentAsString();
+
+		String workoutId = createBody.replaceAll("(?s).*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+		mockMvc.perform(get("/workouts/" + workoutId).header("X-User-Id", "other-user"))
+				.andExpect(status().isNotFound());
 	}
 }

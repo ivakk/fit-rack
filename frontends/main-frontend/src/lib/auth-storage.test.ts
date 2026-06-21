@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearTokens,
   getAccessToken,
+  getRefreshToken,
   isLoggedIn,
   saveTokens,
 } from "./auth-storage";
@@ -21,6 +22,12 @@ describe("auth-storage", () => {
     saveTokens({ accessToken: "a", refreshToken: "r" });
     clearTokens();
     expect(getAccessToken()).toBeNull();
+    expect(getRefreshToken()).toBeNull();
     expect(isLoggedIn()).toBe(false);
+  });
+
+  it("getRefreshToken round-trips", () => {
+    saveTokens({ accessToken: "a", refreshToken: "refresh-xyz" });
+    expect(getRefreshToken()).toBe("refresh-xyz");
   });
 });

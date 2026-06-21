@@ -15,6 +15,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -98,5 +99,103 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().exists("X-Internal-User-Id"))
                 .andExpect(header().string("X-Internal-User-Email", email));
+    }
+
+    @Test
+    void refreshAndDeleteAccount() throws Exception {
+        String email = "refresh-" + System.currentTimeMillis() + "@fitrack.test";
+
+        String registerBody = mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "%s",
+                                  "password": "secret123",
+                                  "fullName": "Refresh User",
+                                  "phoneNumber": "+1",
+                                  "gender": "other"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String refreshToken = registerBody.replaceAll("(?s).*\"refreshToken\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        String accessToken = registerBody.replaceAll("(?s).*\"accessToken\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken": "%s"}
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty());
+
+        mockMvc.perform(delete("/auth/me").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/auth/me").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void registerRejectsInvalidPayload() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "not-an-email",
+                                  "password": "short",
+                                  "fullName": "",
+                                  "phoneNumber": "",
+                                  "gender": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    void loginRejectsInvalidCredentials() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "nobody@fitrack.test", "password": "wrong"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    void registerRejectsDuplicateEmail() throws Exception {
+        String email = "dup-" + System.currentTimeMillis() + "@fitrack.test";
+        String payload = """
+                {
+                  "email": "%s",
+                  "password": "secret123",
+                  "fullName": "Dup User",
+                  "phoneNumber": "+1",
+                  "gender": "other"
+                }
+                """.formatted(email);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    void meRequiresBearerToken() throws Exception {
+        mockMvc.perform(get("/auth/me"))
+                .andExpect(status().isUnauthorized());
     }
 }
