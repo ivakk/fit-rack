@@ -1,0 +1,6 @@
+rootProject.name = 'fitrack'
+
+include 'iam-service', 'workout-service'
+
+project(':iam-service').projectDir = file('backend-services/iam-service')
+project(':workout-service').projectDir = file('backend-services/workout-service')
