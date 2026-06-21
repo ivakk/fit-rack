@@ -3,12 +3,12 @@
 Identity and access management (registration, login, JWT, refresh tokens).
 
 - **Stack:** Java 21, Spring Boot 3.5, Spring Data MongoDB
-- **Database:** MongoDB (`fitrack_iam` database, `users` and `refresh_tokens` collections)
+- **Database:** dedicated MongoDB instance (`mongo-iam` in Docker, port **27017** on host) — database `fitrack_iam`, collections `users` and `refresh_tokens`
 - **Events:** Publishes `user.registered` to RabbitMQ (`fitrack.events`) after registration
 
 ## Run locally
 
-**Option A — Docker (Mongo + API)**
+**Option A — Docker (full stack)**
 
 From the repo root:
 
@@ -16,9 +16,17 @@ From the repo root:
 docker compose up --build
 ```
 
+IAM connects to **`mongo-iam:27017`** (not shared with the workout service).
+
 **Option B — native Gradle**
 
-Start MongoDB (e.g. `docker run -d -p 27017:27017 mongo:8.0`), then:
+Start the IAM MongoDB instance only (workout uses a separate server on port 27018):
+
+```bash
+docker run -d --name fitrack-mongo-iam -p 27017:27017 mongo:8.0
+```
+
+Then:
 
 ```bash
 ./gradlew bootRun
@@ -47,4 +55,4 @@ User IDs in JWT and responses are MongoDB ObjectId strings.
 ./gradlew test
 ```
 
-Uses Testcontainers with a temporary MongoDB 7 instance.
+Uses Testcontainers with a temporary MongoDB 8 instance.

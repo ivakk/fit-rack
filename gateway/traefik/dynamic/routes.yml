@@ -53,6 +53,16 @@ http:
       service: workout
       priority: 100
 
+    health:
+      entryPoints:
+        - web
+      rule: Path(`/health`)
+      middlewares:
+        - security-headers@file
+        - health-to-actuator@file
+      service: iam
+      priority: 30
+
   services:
     iam:
       loadBalancer:

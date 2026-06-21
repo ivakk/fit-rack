@@ -1,0 +1,35 @@
+# Production — images from GHCR (set repository owner via --set).
+
+namespace: fitrack
+
+imagePullSecrets:
+  - name: ghcr-pull
+
+images:
+  iam:
+    repository: ghcr.io/REPLACE_OWNER/fitrack-iam
+    tag: latest
+    pullPolicy: Always
+  workout:
+    repository: ghcr.io/REPLACE_OWNER/fitrack-workout
+    tag: latest
+    pullPolicy: Always
+
+replicas:
+  iam: 2
+  workout: 3
+
+autoscaling:
+  iam:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+  workout:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+traefik:
+  serviceType: LoadBalancer
+
+# Override secrets via --set-file or external-secrets in real production.

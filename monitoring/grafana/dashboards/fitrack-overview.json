@@ -481,7 +481,7 @@
   "templating": { "list": [] },
   "time": { "from": "now-15m", "to": "now" },
   "timezone": "browser",
-  "title": "FitTrack overview",
+  "title": "FiTrack overview",
   "uid": "fitrack-overview",
   "version": 2
 }

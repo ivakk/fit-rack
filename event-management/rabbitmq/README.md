@@ -1,4 +1,4 @@
-# RabbitMQ (FitTrack)
+# RabbitMQ (FiTrack)
 
 Broker config for local and Docker Compose.
 
@@ -15,7 +15,24 @@ Publishers (IAM) send to the exchange with a routing key. Consumers bind their o
 ## Management UI
 
 - URL: http://localhost:15672
-- User / password: see root `.env.example` (`RABBITMQ_USER` / `RABBITMQ_PASSWORD`)
+- User / password: `fitrack` / `fitrack` (from `definitions.json`; must match `RABBITMQ_USER` / `RABBITMQ_PASSWORD` in `.env`)
+
+## Health check
+
+Docker marks RabbitMQ healthy when `rabbitmqctl await_startup` succeeds (broker ready for AMQP). First boot may take **~10–60s**. If IAM/Workout never start, run:
+
+```bash
+docker compose ps rabbitmq
+docker compose logs rabbitmq --tail 30
+```
+
+If the broker was **unhealthy** after an old config (`rabbitmq-diagnostics ping` with a 5s timeout), recreate:
+
+```bash
+docker compose up -d --force-recreate rabbitmq
+```
+
+Credential mismatch after changing `.env` passwords: `docker compose down -v` then `docker compose up --build`.
 
 ## Add a new consumer
 

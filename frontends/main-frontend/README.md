@@ -1,4 +1,4 @@
-# FitTrack main frontend
+# FiTrack main frontend
 
 Next.js 14 dashboard for auth and workout logging.
 

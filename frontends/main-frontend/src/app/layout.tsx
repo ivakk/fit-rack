@@ -17,7 +17,7 @@ const plex = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "FitTrack",
+  title: "FiTrack",
   description: "Track workouts and progress",
 };
 

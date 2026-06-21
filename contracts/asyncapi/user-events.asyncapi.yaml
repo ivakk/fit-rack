@@ -1,6 +1,6 @@
 asyncapi: 3.0.0
 info:
-  title: FitTrack User Events
+  title: FiTrack User Events
   version: 1.0.0
   description: Domain events published when user lifecycle changes in IAM.
 

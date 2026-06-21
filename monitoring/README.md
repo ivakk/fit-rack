@@ -1,4 +1,4 @@
-# FitTrack monitoring
+# FiTrack monitoring
 
 Prometheus scrapes metrics from Spring Boot services and RabbitMQ. Grafana visualizes them on a pre-provisioned dashboard.
 
@@ -24,7 +24,7 @@ Metrics endpoints are on the **Docker network only** — not routed through Trae
 
 ## Dashboard
 
-Open Grafana → **Dashboards** → **FitTrack** folder → **FitTrack overview**.
+Open Grafana → **Dashboards** → **FiTrack** folder → **FiTrack overview**.
 
 Panels include:
 

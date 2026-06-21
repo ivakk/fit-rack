@@ -42,7 +42,7 @@ function assertOk(world, context) {
   );
 }
 
-Given("the FitTrack stack is running behind Traefik", async function () {
+Given("the FiTrack stack is running behind Traefik", async function () {
   const res = await fetch(`${this.gateway}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

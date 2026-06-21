@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: iam
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: iam
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: iam
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iam-headless
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: iam
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    app: iam
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iam
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: iam
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  replicas: {{ if .Values.autoscaling.iam.enabled }}{{ .Values.autoscaling.iam.minReplicas }}{{ else }}{{ .Values.replicas.iam }}{{ end }}
+  selector:
+    matchLabels:
+      app: iam
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: iam
+        {{- include "fitrack.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: iam
+          image: {{ .Values.images.iam.repository }}:{{ .Values.images.iam.tag }}
+          imagePullPolicy: {{ .Values.images.iam.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: SPRING_DATA_MONGODB_URI
+              value: mongodb://mongo-iam:27017/{{ .Values.mongodb.iamDatabase }}
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: rabbitmq-user
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: rabbitmq-password
+            - name: SECURITY_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: jwt-secret
+            - name: SECURITY_JWT_ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: jwt-issuer
+            - name: SECURITY_JWT_ACCESS_TTL_MINUTES
+              value: {{ .Values.secrets.jwtAccessTtlMinutes | quote }}
+          resources:
+            {{- toYaml .Values.resources.iam | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            failureThreshold: 24
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20

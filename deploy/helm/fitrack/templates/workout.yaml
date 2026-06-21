@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workout
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: workout
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: workout
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workout-headless
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: workout
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    app: workout
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workout
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: workout
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  replicas: {{ if .Values.autoscaling.workout.enabled }}{{ .Values.autoscaling.workout.minReplicas }}{{ else }}{{ .Values.replicas.workout }}{{ end }}
+  selector:
+    matchLabels:
+      app: workout
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: workout
+        {{- include "fitrack.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: workout
+          image: {{ .Values.images.workout.repository }}:{{ .Values.images.workout.tag }}
+          imagePullPolicy: {{ .Values.images.workout.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: SPRING_DATA_MONGODB_URI
+              value: mongodb://mongo-workout:27017/{{ .Values.mongodb.workoutDatabase }}
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: rabbitmq-user
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: rabbitmq-password
+            - name: GATEWAY_TRUSTED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: gateway-trusted-secret
+            - name: WORKOUT_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: workout-encryption-key
+          resources:
+            {{- toYaml .Values.resources.workout | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            failureThreshold: 24
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20

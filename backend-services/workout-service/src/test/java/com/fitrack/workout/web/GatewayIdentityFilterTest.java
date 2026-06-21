@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -26,6 +27,10 @@ class GatewayIdentityFilterTest {
 	@Container
 	@ServiceConnection
 	static MongoDBContainer mongo = new MongoDBContainer(TestContainersImages.MONGO);
+
+	@Container
+	@ServiceConnection
+	static RabbitMQContainer rabbit = new RabbitMQContainer(TestContainersImages.RABBITMQ);
 
 	@Autowired
 	private MockMvc mockMvc;

@@ -1,17 +1,35 @@
-# FitTrack local stack — run: make setup   or: docker compose up --build
+# FiTrack local stack — run: make setup   or: docker compose up --build
 #
 # API: http://localhost (Traefik). Use Authorization: Bearer only for /workouts.
 # Do not send X-User-Id from clients.
 name: fitrack
 
 services:
-  mongo:
+  mongo-iam:
     image: mongo:8.0
+    container_name: fitrack-mongo-iam
+    hostname: mongo-iam
     networks: [fitrack-net]
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "${MONGO_IAM_PORT:-27017}:27017"
     volumes:
-      - mongo-data:/data/db
+      - mongo-iam-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mongo-workout:
+    image: mongo:8.0
+    container_name: fitrack-mongo-workout
+    hostname: mongo-workout
+    networks: [fitrack-net]
+    ports:
+      - "${MONGO_WORKOUT_PORT:-27018}:27017"
+    volumes:
+      - mongo-workout-data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -21,6 +39,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
+    container_name: fitrack-rabbitmq
     hostname: rabbitmq
     networks: [fitrack-net]
     ports:
@@ -30,14 +49,16 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fitrack}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-fitrack}
     volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
       - ./event-management/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./event-management/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      # diagnostics ping exceeds 5s; await_startup is fast once the broker is ready
+      test: ["CMD", "rabbitmqctl", "await_startup"]
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 60s
 
   traefik:
     image: traefik:v3.3
@@ -61,16 +82,15 @@ services:
     build:
       context: ./backend-services/iam-service
       dockerfile: Dockerfile
-    container_name: fitrack-iam
     networks: [fitrack-net]
     depends_on:
-      mongo:
+      mongo-iam:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/${MONGO_IAM_DATABASE:-fitrack_iam}
+      SPRING_DATA_MONGODB_URI: mongodb://mongo-iam:27017/${MONGO_IAM_DATABASE:-fitrack_iam}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-fitrack}
@@ -78,8 +98,7 @@ services:
       SECURITY_JWT_SECRET: ${IAM_JWT_SECRET}
       SECURITY_JWT_ISSUER: ${IAM_JWT_ISSUER:-fitrack-iam}
       SECURITY_JWT_ACCESS_TTL_MINUTES: ${IAM_JWT_ACCESS_TTL_MINUTES:-60}
-    ports:
-      - "${IAM_PORT:-8080}:8080"
+    # No host port — use Traefik (scale with: make up-scaled). Debug: docker compose exec iam curl localhost:8080/actuator/health
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
       interval: 10s
@@ -91,16 +110,15 @@ services:
     build:
       context: ./backend-services/workout-service
       dockerfile: Dockerfile
-    container_name: fitrack-workout
     networks: [fitrack-net]
     depends_on:
-      mongo:
+      mongo-workout:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/${MONGO_WORKOUT_DATABASE:-fitrack_workout}
+      SPRING_DATA_MONGODB_URI: mongodb://mongo-workout:27017/${MONGO_WORKOUT_DATABASE:-fitrack_workout}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-fitrack}
@@ -193,7 +211,9 @@ networks:
     name: fitrack-net
 
 volumes:
-  mongo-data:
+  mongo-iam-data:
+  mongo-workout-data:
+  rabbitmq-data:
   frontend_node_modules:
   prometheus-data:
   grafana-data:

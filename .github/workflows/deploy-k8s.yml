@@ -1,0 +1,79 @@
+# Deploy FiTrack to Kubernetes via Helm (manual / staging).
+name: Deploy Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Values file profile
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prod
+
+concurrency:
+  group: deploy-k8s-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  helm-deploy:
+    name: Helm deploy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Configure kubeconfig
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -z "${KUBE_CONFIG:-}" ]; then
+            echo "KUBE_CONFIG secret is not set — skipping remote deploy."
+            echo "For local deploy use: make k8s-cluster && make k8s-deploy"
+            exit 0
+          fi
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+
+      - name: Sync RabbitMQ config into chart
+        run: |
+          mkdir -p deploy/helm/fitrack/config/rabbitmq
+          cp event-management/rabbitmq/definitions.json deploy/helm/fitrack/config/rabbitmq/
+          cp event-management/rabbitmq/rabbitmq.conf deploy/helm/fitrack/config/rabbitmq/
+
+      - name: Helm upgrade --install
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -z "${KUBE_CONFIG:-}" ]; then
+            exit 0
+          fi
+          VALUES="deploy/helm/fitrack/values-${{ inputs.environment }}.yaml"
+          helm upgrade --install fitrack deploy/helm/fitrack \
+            -f "$VALUES" \
+            -n fitrack \
+            --create-namespace \
+            --set "images.iam.repository=ghcr.io/${{ github.repository_owner }}/fitrack-iam" \
+            --set "images.workout.repository=ghcr.io/${{ github.repository_owner }}/fitrack-workout" \
+            --set "images.iam.tag=latest" \
+            --set "images.workout.tag=latest" \
+            --wait \
+            --timeout 10m
+
+      - name: Deployment status
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -z "${KUBE_CONFIG:-}" ]; then
+            exit 0
+          fi
+          kubectl get pods,svc,hpa -n fitrack

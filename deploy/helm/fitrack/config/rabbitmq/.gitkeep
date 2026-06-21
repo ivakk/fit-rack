@@ -1,0 +1,1 @@
+# RabbitMQ config is copied here by scripts/k8s-deploy.sh before helm install.

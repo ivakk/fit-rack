@@ -18,6 +18,7 @@ Single HTTP entry point: **http://localhost** (port 80).
 
 | Path | Service | Auth |
 |------|---------|------|
+| `/health` | IAM (`/actuator/health`) | Public — liveness for probes and DAST seed |
 | `/auth/*` | IAM | Public |
 | `/workouts/*` | Workout | ForwardAuth + gateway trust |
 

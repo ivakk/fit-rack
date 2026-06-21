@@ -1,4 +1,4 @@
-# FitTrack acceptance tests (Cucumber)
+# FiTrack acceptance tests (Cucumber)
 
 Executable **BDD** scenarios for the API gateway path. Feature file lives in the docs folder so it doubles as coursework documentation.
 

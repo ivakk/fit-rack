@@ -1,6 +1,6 @@
 # Workout service
 
-Stores user workouts in MongoDB. **Does not validate JWTs** and does not depend on IAM at runtime.
+Stores user workouts in a **dedicated MongoDB instance** (`mongo-workout` in Docker). **Does not validate JWTs** and does not depend on IAM at runtime.
 
 ## Event consumption
 
@@ -59,12 +59,19 @@ Traefik strips client identity headers, IAM validates JWT, workout receives `X-I
 
 **Native Gradle (no Traefik):** `fitrack.gateway.require-trusted-header=false` in `application-dev` — manual `X-User-Id` only for local debugging.
 
-**Native:** `./gradlew bootRun` (Mongo + RabbitMQ on localhost; no Traefik unless you run compose).
+**Native:** `./gradlew bootRun` — requires **mongo-workout** on port **27018** and RabbitMQ on localhost (see below).
 
 ## Database
 
-- URI (dev): `mongodb://localhost:27017/fitrack_workout`
+- Docker hostname: `mongo-workout:27017` (isolated from IAM’s `mongo-iam`)
+- Native dev URI: `mongodb://localhost:27018/fitrack_workout` (`application-dev.properties`)
 - Collection: `workouts` (embedded exercises)
+
+To run only the workout database locally:
+
+```bash
+docker run -d --name fitrack-mongo-workout -p 27018:27017 mongo:8.0
+```
 
 ## Tests
 

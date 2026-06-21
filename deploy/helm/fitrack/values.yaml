@@ -1,0 +1,85 @@
+# Default values — override with values-dev.yaml (k3d) or values-prod.yaml (GHCR + VPS).
+
+namespace: fitrack
+
+imagePullSecrets: []
+
+images:
+  iam:
+    repository: fitrack-iam
+    tag: latest
+    pullPolicy: IfNotPresent
+  workout:
+    repository: fitrack-workout
+    tag: latest
+    pullPolicy: IfNotPresent
+  traefik:
+    repository: traefik
+    tag: v3.3
+    pullPolicy: IfNotPresent
+  mongo:
+    repository: mongo
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  rabbitmq:
+    repository: rabbitmq
+    tag: 3.13-management-alpine
+    pullPolicy: IfNotPresent
+
+replicas:
+  iam: 2
+  workout: 3
+  traefik: 1
+
+autoscaling:
+  iam:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  workout:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+resources:
+  iam:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+  workout:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+
+secrets:
+  jwtSecret: supersecretkeysupersecretkey123456
+  jwtIssuer: fitrack-iam
+  jwtAccessTtlMinutes: 60
+  gatewayTrustedSecret: fitrack-dev-gateway
+  workoutEncryptionKey: fitrack-dev-workout-encryption-key-32b
+  rabbitmqUser: fitrack
+  rabbitmqPassword: fitrack
+
+mongodb:
+  iamDatabase: fitrack_iam
+  workoutDatabase: fitrack_workout
+  storage: 1Gi
+
+rabbitmq:
+  storage: 1Gi
+
+traefik:
+  serviceType: LoadBalancer
+  gatewayPort: 80
+  dashboardPort: 8080
+
+prometheus:
+  enabled: false

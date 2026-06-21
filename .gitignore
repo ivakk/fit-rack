@@ -35,3 +35,10 @@ contracts/codegen/out/
 
 # Load test exports (keep directory via .gitkeep)
 load-testing/results/*.json
+
+# Helm chart config copied at deploy time (see scripts/k8s-deploy.sh)
+deploy/helm/fitrack/config/rabbitmq/*
+!deploy/helm/fitrack/config/rabbitmq/.gitkeep
+
+security-reports/
+trivy-*.sarif

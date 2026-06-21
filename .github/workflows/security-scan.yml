@@ -1,0 +1,109 @@
+# Container image scan (Trivy) + DAST (OWASP ZAP baseline) against Traefik
+name: Security scan
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container-image-scan:
+    name: Trivy — IAM & Workout images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          chmod +x scripts/render-traefik.sh
+          ./scripts/render-traefik.sh
+
+      - name: Build service images
+        run: docker compose build iam workout
+
+      - name: Resolve built image tags
+        run: |
+          echo "IAM_IMAGE=fitrack-iam:latest" >> "$GITHUB_ENV"
+          echo "WORKOUT_IMAGE=fitrack-workout:latest" >> "$GITHUB_ENV"
+          docker image inspect fitrack-iam:latest fitrack-workout:latest
+
+      - name: Trivy scan reports (JSON, SARIF, HTML)
+        env:
+          TRIVY_SKIP_BUILD: 1
+          TRIVY_FAIL_ON_FINDINGS: 1
+        run: |
+          chmod +x scripts/security-scan.sh
+          ./scripts/security-scan.sh images
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports
+          path: |
+            security-reports/trivy-iam.json
+            security-reports/trivy-iam.sarif
+            security-reports/trivy-iam.html
+            security-reports/trivy-workout.json
+            security-reports/trivy-workout.sarif
+            security-reports/trivy-workout.html
+            security-reports/trivy-summary.md
+
+  dast-zap:
+    name: OWASP ZAP baseline (DAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          chmod +x scripts/render-traefik.sh scripts/wait-for-stack.sh
+          ./scripts/render-traefik.sh
+
+      - name: Start stack
+        run: docker compose up --build -d mongo-iam mongo-workout rabbitmq iam workout traefik
+
+      - name: Wait for healthy stack
+        run: ./scripts/wait-for-stack.sh 300
+
+      - name: OWASP ZAP baseline scan
+        run: |
+          mkdir -p security-reports
+          set +e
+          docker run --rm --network fitrack-net \
+            -v "$PWD/security-reports:/zap/wrk/:rw" \
+            -v "$PWD/security/zap/baseline-rules.conf:/zap/config/baseline-rules.conf:ro" \
+            -t ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t http://traefik:80/health \
+              -c /zap/config/baseline-rules.conf \
+              -z "-config spider.additionalUrls=http://traefik:80/auth/login|http://traefik:80/auth/register|http://traefik:80/auth/refresh" \
+              -r zap-baseline.html \
+              -J zap-baseline.json \
+              -w zap-baseline.md \
+              -I
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then
+            echo "ZAP failed with a tool error."
+            exit 1
+          fi
+          echo "ZAP finished (exit ${code}; 2 = alerts found — review artifacts)."
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: security-reports/
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

@@ -1,0 +1,112 @@
+{{- if (.Files.Get "config/rabbitmq/definitions.json") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "fitrack.labels" . | nindent 4 }}
+data:
+  definitions.json: |
+{{ .Files.Get "config/rabbitmq/definitions.json" | indent 4 }}
+  rabbitmq.conf: |
+{{ .Files.Get "config/rabbitmq/rabbitmq.conf" | indent 4 }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: rabbitmq
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+    - name: prometheus
+      port: 15692
+      targetPort: 15692
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: rabbitmq
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+        {{- include "fitrack.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: rabbitmq
+          image: {{ .Values.images.rabbitmq.repository }}:{{ .Values.images.rabbitmq.tag }}
+          imagePullPolicy: {{ .Values.images.rabbitmq.pullPolicy }}
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+            - containerPort: 15692
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: rabbitmq-user
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: fitrack-secrets
+                  key: rabbitmq-password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+            {{- if (.Files.Get "config/rabbitmq/definitions.json") }}
+            - name: config
+              mountPath: /etc/rabbitmq/definitions.json
+              subPath: definitions.json
+            - name: config
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+            {{- end }}
+          readinessProbe:
+            exec:
+              command: ["rabbitmqctl", "await_startup"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 60
+          livenessProbe:
+            exec:
+              command: ["rabbitmqctl", "status"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        {{- if (.Files.Get "config/rabbitmq/definitions.json") }}
+        - name: config
+          configMap:
+            name: rabbitmq-config
+        {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.rabbitmq.storage }}

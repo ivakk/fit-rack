@@ -1,4 +1,4 @@
-# FitTrack acceptance scenarios (BDD / Gherkin)
+# FiTrack acceptance scenarios (BDD / Gherkin)
 # Run: make test-acceptance  (Cucumber → acceptance-tests/, stack must be up)
 # Legacy bash equivalent: make test-gateway
 
@@ -8,7 +8,7 @@ Feature: User registration and authentication
   So that I can access my workouts securely
 
   Scenario: Register through the API gateway
-    Given the FitTrack stack is running behind Traefik
+    Given the FiTrack stack is running behind Traefik
     When I POST valid registration data to "/auth/register"
     Then I receive an access token
     And I can call GET "/auth/me" with Bearer authorization

@@ -1,0 +1,227 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "fitrack.labels" . | nindent 4 }}
+data:
+  traefik.yml: |
+    api:
+      insecure: true
+    entryPoints:
+      web:
+        address: ":80"
+    providers:
+      file:
+        directory: /etc/traefik/dynamic
+        watch: true
+    log:
+      level: INFO
+  routes.yml: |
+    http:
+      routers:
+        iam-auth-sensitive:
+          entryPoints:
+            - web
+          rule: Path(`/auth/login`) || Path(`/auth/register`) || Path(`/auth/refresh`)
+          middlewares:
+            - cors@file
+            - security-headers@file
+            - rate-limit-auth@file
+          service: iam
+          priority: 20
+        iam:
+          entryPoints:
+            - web
+          rule: PathPrefix(`/auth`) && !Method(`OPTIONS`)
+          middlewares:
+            - cors@file
+            - security-headers@file
+          service: iam
+          priority: 10
+        iam-options:
+          entryPoints:
+            - web
+          rule: PathPrefix(`/auth`) && Method(`OPTIONS`)
+          middlewares:
+            - cors@file
+          service: iam
+          priority: 100
+        workout:
+          entryPoints:
+            - web
+          rule: PathPrefix(`/workouts`) && !Method(`OPTIONS`)
+          middlewares:
+            - cors@file
+            - security-headers@file
+            - strip-client-identity@file
+            - iam-forwardauth@file
+            - gateway-trusted@file
+          service: workout
+          priority: 10
+        workout-options:
+          entryPoints:
+            - web
+          rule: PathPrefix(`/workouts`) && Method(`OPTIONS`)
+          middlewares:
+            - cors@file
+          service: workout
+          priority: 100
+        health:
+          entryPoints:
+            - web
+          rule: Path(`/health`)
+          middlewares:
+            - security-headers@file
+            - health-to-actuator@file
+          service: iam
+          priority: 30
+      services:
+        iam:
+          loadBalancer:
+            servers:
+              - url: http://iam:8080
+        workout:
+          loadBalancer:
+            servers:
+              - url: http://workout:8080
+  middlewares.yml: |
+    http:
+      middlewares:
+        cors:
+          headers:
+            accessControlAllowMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            accessControlAllowHeaders:
+              - Authorization
+              - Content-Type
+            accessControlAllowOriginListRegex:
+              - "^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
+            accessControlAllowCredentials: true
+            accessControlMaxAge: 100
+            addVaryHeader: true
+        security-headers:
+          headers:
+            contentTypeNosniff: true
+            frameDeny: true
+            browserXssFilter: true
+            referrerPolicy: strict-origin-when-cross-origin
+            permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+            customResponseHeaders:
+              X-Content-Type-Options: nosniff
+              X-Frame-Options: DENY
+        rate-limit-auth:
+          rateLimit:
+            average: 10
+            period: 1m
+            burst: 20
+        strip-client-identity:
+          headers:
+            customRequestHeaders:
+              X-User-Id: ""
+              X-Internal-User-Id: ""
+              X-Internal-User-Email: ""
+              X-Internal-User-Role: ""
+              X-Gateway-Trusted: ""
+        iam-forwardauth:
+          forwardAuth:
+            address: "http://iam:8080/auth/forward-auth"
+            trustForwardHeader: true
+            authResponseHeaders:
+              - X-Internal-User-Id
+              - X-Internal-User-Email
+              - X-Internal-User-Role
+            authRequestHeaders:
+              - Authorization
+        gateway-trusted:
+          headers:
+            customRequestHeaders:
+              X-Gateway-Trusted: "{{ .Values.secrets.gatewayTrustedSecret }}"
+        health-to-actuator:
+          replacePath:
+            path: /actuator/health
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: traefik
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.traefik.serviceType }}
+  selector:
+    app: traefik
+  ports:
+    - name: web
+      port: {{ .Values.traefik.gatewayPort }}
+      targetPort: 80
+    - name: dashboard
+      port: {{ .Values.traefik.dashboardPort }}
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: traefik
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas.traefik }}
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+        {{- include "fitrack.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: traefik
+          image: {{ .Values.images.traefik.repository }}:{{ .Values.images.traefik.tag }}
+          imagePullPolicy: {{ .Values.images.traefik.pullPolicy }}
+          args:
+            - --configFile=/etc/traefik/traefik.yml
+          ports:
+            - name: web
+              containerPort: 80
+            - name: dashboard
+              containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /etc/traefik/traefik.yml
+              subPath: traefik.yml
+            - name: dynamic
+              mountPath: /etc/traefik/dynamic
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            periodSeconds: 15
+      volumes:
+        - name: config
+          configMap:
+            name: traefik-config
+            items:
+              - key: traefik.yml
+                path: traefik.yml
+        - name: dynamic
+          configMap:
+            name: traefik-config
+            items:
+              - key: routes.yml
+                path: routes.yml
+              - key: middlewares.yml
+                path: middlewares.yml

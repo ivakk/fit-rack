@@ -50,18 +50,18 @@ wait_for_url() {
   return 1
 }
 
-wait_for_url "IAM" "http://127.0.0.1:${IAM_PORT:-8080}/actuator/health" 120
-wait_for_url "API gateway" "${GATEWAY_URL:-http://localhost}/auth/login" 60 || true
+wait_for_url "API gateway" "${GATEWAY_URL:-http://localhost}/health" 120 || \
+  wait_for_url "API gateway" "${GATEWAY_URL:-http://localhost}/auth/login" 60 || true
 
 echo ""
 echo "Running gateway smoke test..."
 ./scripts/test-gateway.sh
 
 echo ""
-echo "FitTrack is up."
+echo "FiTrack is up."
 echo "  Frontend:   http://127.0.0.1:${FRONTEND_PORT:-3000}"
 echo "  API:        ${GATEWAY_URL:-http://localhost}"
-echo "  IAM debug:  http://127.0.0.1:${IAM_PORT:-8080}"
+echo "  Health:     ${GATEWAY_URL:-http://localhost}/health"
 echo "  Traefik UI: http://127.0.0.1:${TRAEFIK_DASHBOARD_PORT:-8090}"
 echo "  RabbitMQ:   http://127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672} (${RABBITMQ_USER:-fitrack} / ${RABBITMQ_PASSWORD:-fitrack})"
 echo "  Grafana:    http://127.0.0.1:${GRAFANA_PORT:-3001} (${GRAFANA_ADMIN_USER:-admin} / see .env)"

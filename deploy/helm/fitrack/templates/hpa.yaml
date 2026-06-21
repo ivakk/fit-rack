@@ -1,0 +1,47 @@
+{{- if .Values.autoscaling.iam.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: iam
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: iam
+  minReplicas: {{ .Values.autoscaling.iam.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.iam.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.iam.targetCPUUtilizationPercentage }}
+{{- end }}
+---
+{{- if .Values.autoscaling.workout.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: workout
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "fitrack.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: workout
+  minReplicas: {{ .Values.autoscaling.workout.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.workout.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.workout.targetCPUUtilizationPercentage }}
+{{- end }}

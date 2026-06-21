@@ -1,6 +1,6 @@
 # SonarQube / SonarCloud setup
 
-FitTrack uses [SonarCloud](https://sonarcloud.io) (free for public repos) or a self-hosted SonarQube server for static analysis, code smells, and coverage from JaCoCo.
+FiTrack uses [SonarCloud](https://sonarcloud.io) (free for public repos) or a self-hosted SonarQube server for static analysis, code smells, and coverage from JaCoCo.
 
 ## One-time setup (SonarCloud)
 

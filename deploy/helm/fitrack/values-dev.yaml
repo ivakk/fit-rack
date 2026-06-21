@@ -1,0 +1,26 @@
+# Local k3d — built images imported into the cluster (see scripts/k8s-deploy.sh).
+
+namespace: fitrack
+
+images:
+  iam:
+    repository: fitrack-iam
+    tag: latest
+    pullPolicy: IfNotPresent
+  workout:
+    repository: fitrack-workout
+    tag: latest
+    pullPolicy: IfNotPresent
+
+replicas:
+  iam: 2
+  workout: 3
+
+autoscaling:
+  workout:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 5
+
+traefik:
+  serviceType: LoadBalancer

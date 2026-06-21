@@ -20,22 +20,12 @@ jobs:
           ./scripts/render-traefik.sh
 
       - name: Start stack
-        run: docker compose up --build -d mongodb rabbitmq iam workout traefik
+        run: docker compose up --build -d mongo-iam mongo-workout rabbitmq iam workout traefik
 
       - name: Wait for healthy services
         run: |
-          for i in $(seq 1 60); do
-            if docker compose ps --format json | grep -q '"Health":"healthy"' 2>/dev/null; then
-              healthy=$(docker compose ps | grep -c healthy || true)
-              if [ "${healthy:-0}" -ge 2 ]; then
-                echo "Services reporting healthy."
-                break
-              fi
-            fi
-            sleep 5
-          done
-          docker compose ps
-          sleep 15
+          chmod +x scripts/wait-for-stack.sh
+          ./scripts/wait-for-stack.sh 300
 
       - uses: actions/setup-node@v4
         with:
@@ -65,10 +55,12 @@ jobs:
           ./scripts/render-traefik.sh
 
       - name: Start stack for load test
-        run: docker compose --profile loadtest up --build -d mongodb rabbitmq iam workout traefik
+        run: docker compose --profile loadtest up --build -d mongo-iam mongo-workout rabbitmq iam workout traefik
 
       - name: Wait for stack
-        run: sleep 45
+        run: |
+          chmod +x scripts/wait-for-stack.sh
+          ./scripts/wait-for-stack.sh 300
 
       - name: k6 smoke via Traefik
         run: |
@@ -79,6 +71,43 @@ jobs:
             -e K6_SETUP_USERS=1 \
             -e K6_SETUP_DELAY=0 \
             k6 run /scripts/k6/smoke.js
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile loadtest down -v
+
+  k6-nfr-01:
+    name: k6 NFR-01 + NFR-05 load test (manual)
+    runs-on: ubuntu-latest
+    needs: gateway-e2e
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          ./scripts/render-traefik.sh
+
+      - name: Start stack for load test
+        run: docker compose --profile loadtest up --build -d mongo-iam mongo-workout rabbitmq iam workout traefik
+
+      - name: Wait for stack
+        run: |
+          chmod +x scripts/wait-for-stack.sh
+          ./scripts/wait-for-stack.sh 300
+
+      - name: k6 NFR-01 load test via Traefik
+        run: chmod +x scripts/load-test.sh && ./scripts/load-test.sh nfr-01-load
+
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-nfr-01-summary
+          path: load-testing/results/summary-*.json
+          if-no-files-found: ignore
 
       - name: Tear down
         if: always()

@@ -1,6 +1,6 @@
 asyncapi: 3.0.0
 info:
-  title: FitTrack Workout Events
+  title: FiTrack Workout Events
   version: 1.0.0
   description: Domain events published when workouts change (future publishers).
 

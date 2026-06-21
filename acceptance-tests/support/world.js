@@ -1,6 +1,6 @@
 import { setWorldConstructor } from "@cucumber/cucumber";
 
-export class FitTrackWorld {
+export class FiTrackWorld {
   constructor({ parameters }) {
     this.gateway =
       process.env.GATEWAY_URL ||
@@ -15,4 +15,4 @@ export class FitTrackWorld {
   }
 }
 
-setWorldConstructor(FitTrackWorld);
+setWorldConstructor(FiTrackWorld);

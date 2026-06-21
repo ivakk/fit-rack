@@ -19,7 +19,7 @@ class WorkoutApplicationTests {
 
 	@Container
 	@ServiceConnection
-	static RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.13-management");
+	static RabbitMQContainer rabbit = new RabbitMQContainer(TestContainersImages.RABBITMQ);
 
 	@Test
 	void contextLoads() {

@@ -6,7 +6,7 @@ export function Logo({ href = "/dashboard", large }: { href?: string; large?: bo
       href={href}
       className={`font-display font-bold tracking-tight text-white ${large ? "text-3xl" : "text-xl"}`}
     >
-      Fit<span className="text-accent">Track</span>
+      Fi<span className="text-accent">Track</span>
     </Link>
   );
 }
