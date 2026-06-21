@@ -1,4 +1,4 @@
-# SonarQube / SonarCloud static analysis (requires repository secrets)
+# SonarCloud on every push (GitHub-hosted CI)
 name: SonarQube
 
 on:
@@ -12,8 +12,22 @@ jobs:
   sonar:
     name: SonarCloud analysis
     runs-on: ubuntu-latest
-    if: ${{ secrets.SONAR_TOKEN != '' }}
+    if: vars.SONAR_ENABLED != 'false'
     steps:
+      - name: Verify SonarCloud is configured
+        env:
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+        run: |
+          if [ -z "$SONAR_ORGANIZATION" ]; then
+            echo "::error::SonarCloud is not configured for CI."
+            echo "GitHub Actions cannot reach SonarQube on your Mac (localhost)."
+            echo "For analysis on every push, use SonarCloud — see docs/SONAR.md:"
+            echo "  1. Import repo at https://sonarcloud.io"
+            echo "  2. Secrets: SONAR_TOKEN, SONAR_HOST_URL=https://sonarcloud.io"
+            echo "  3. Variable: SONAR_ORGANIZATION=<your-org-key>"
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -39,7 +53,7 @@ jobs:
         working-directory: frontends/main-frontend
         run: npm ci
 
-      - name: SonarQube Scan
+      - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -47,7 +61,7 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'fitrack' }}
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
 
       - name: SonarQube Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1

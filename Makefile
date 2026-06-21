@@ -79,6 +79,10 @@ security-scan-dast:
 	chmod +x scripts/security-scan.sh scripts/wait-for-stack.sh
 	./scripts/security-scan.sh dast
 
+sonar-local:
+	chmod +x scripts/sonar-local.sh
+	./scripts/sonar-local.sh
+
 restart: down up
 
 clean:
