@@ -14,6 +14,7 @@ import com.fitrack.iam.domain.User;
 import com.fitrack.iam.security.SecurityAuditLogger;
 import com.fitrack.iam.util.ClockProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -46,7 +47,12 @@ public class AuthService implements AuthUseCase {
                 .gender(req.getGender())
                 .build();
 
-        User savedUser = users.save(user);
+        User savedUser;
+        try {
+            savedUser = users.save(user);
+        } catch (DuplicateKeyException ex) {
+            throw new EmailAlreadyInUseException();
+        }
         events.publishUserRegistered(new UserRegisteredEvent(
                 savedUser.getId(),
                 savedUser.getEmail(),

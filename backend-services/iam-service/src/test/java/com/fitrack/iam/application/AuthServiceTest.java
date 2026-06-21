@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -105,6 +106,23 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(req))
                 .hasMessageContaining("Email already in use");
+    }
+
+    @Test
+    void register_mapsDuplicateKeyToEmailAlreadyInUse() {
+        when(users.findByEmail("a@test.com")).thenReturn(Optional.empty());
+        when(hasher.hash("secret")).thenReturn("hashed");
+        when(users.save(any(User.class))).thenThrow(new DuplicateKeyException("email"));
+
+        RegisterRequest req = new RegisterRequest();
+        req.setEmail("a@test.com");
+        req.setPassword("secret");
+        req.setFullName("Alex");
+        req.setPhoneNumber("+1");
+        req.setGender("other");
+
+        assertThatThrownBy(() -> authService.register(req))
+                .isInstanceOf(EmailAlreadyInUseException.class);
     }
 
     @Test

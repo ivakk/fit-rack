@@ -3,7 +3,6 @@ package com.fitrack.iam.api.error;
 import com.fitrack.iam.application.EmailAlreadyInUseException;
 import com.fitrack.iam.application.InvalidCredentialsException;
 import io.jsonwebtoken.JwtException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -28,11 +27,6 @@ public class GlobalExceptionHandler {
         return badRequest(message.isBlank() ? "Validation failed" : message);
     }
 
-    @ExceptionHandler(DuplicateKeyException.class)
-    public ResponseEntity<Map<String, String>> duplicateKey(DuplicateKeyException ex) {
-        return response(HttpStatus.CONFLICT, "Email already in use");
-    }
-
     @ExceptionHandler(EmailAlreadyInUseException.class)
     public ResponseEntity<Map<String, String>> emailInUse(EmailAlreadyInUseException ex) {
         return response(HttpStatus.CONFLICT, ex.getMessage());
@@ -50,15 +44,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<Map<String, String>> missingHeader(MissingRequestHeaderException ex) {
-        if ("Authorization".equalsIgnoreCase(ex.getHeaderName())) {
-            return response(HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
-        }
-        return badRequest("Missing required header: " + ex.getHeaderName());
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException ex) {
-        return badRequest("Invalid request");
+        return response(HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
     }
 
     @ExceptionHandler(Exception.class)

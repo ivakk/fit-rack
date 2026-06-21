@@ -199,4 +199,11 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Missing or invalid Authorization header"));
     }
+
+    @Test
+    void meRejectsMalformedAccessToken() throws Exception {
+        mockMvc.perform(get("/auth/me").header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid or expired token"));
+    }
 }
