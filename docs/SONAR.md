@@ -22,7 +22,17 @@ GitHub’s runners are in the cloud. They **cannot** connect to `http://localhos
 2. **+** → **Analyze new project** → select **fitrack**
 3. Project key: **`fitrack`** (matches `sonar-project.properties`)
 
-### 2. GitHub **secret**
+### 2. Bind GitHub to SonarCloud (required for commits / PR checks)
+
+SonarCloud only links analyses to GitHub commits when the **SonarCloud GitHub App** is installed and the repo is bound.
+
+1. **GitHub:** https://github.com/apps/sonarcloud → **Configure** → grant access to your **fitrack** repo (or all repos in org `ivakk`)
+2. **SonarCloud:** Organization **Administration** → **Organization settings** → confirm GitHub is connected
+3. **SonarCloud:** Project **fitrack** → **Administration** → **GitHub** → confirm repository binding shows **BOUND** (not `NONEXISTENT`)
+
+Without this, scans may upload but **won’t appear on commits** or PRs in GitHub.
+
+### 3. GitHub **secret**
 
 Repo → **Settings → Secrets and variables → Actions → Secrets → New repository secret**
 
@@ -30,20 +40,18 @@ Repo → **Settings → Secrets and variables → Actions → Secrets → New re
 |--------|--------|
 | `SONAR_TOKEN` | SonarCloud token (My Account → Security → Generate Token) |
 
-Optional:
+Do **not** set `SONAR_HOST_URL` to `localhost` — CI always uses `https://sonarcloud.io`.
 
-| Secret | Value |
-|--------|--------|
-| `SONAR_HOST_URL` | `https://sonarcloud.io` (default in `build.gradle` if unset) |
-
-Project key and organization are configured in root [`build.gradle`](../build.gradle):
+Project key and organization are in root [`build.gradle`](../build.gradle):
 
 ```gradle
 property 'sonar.projectKey', 'fitrack'
 property 'sonar.organization', 'ivakk'
 ```
 
-### 3. Disable Automatic Analysis (required for coverage)
+The workflow also passes **`GITHUB_TOKEN`** (built-in) so SonarCloud can decorate commits and PRs.
+
+### 4. Disable Automatic Analysis (required for CI + coverage)
 
 SonarCloud enables **Automatic Analysis** by default when you import a repo. Automatic Analysis **does not support code coverage** — the dashboard will keep showing:
 
@@ -56,7 +64,7 @@ SonarCloud enables **Automatic Analysis** by default when you import a repo. Aut
 
 If you don’t see **Administration**, restore project admin: Organization **Administration** → **Projects Management** → ⋮ → **Restore Access**.
 
-### 4. Push to `main` or `master`
+### 5. Push to `main`, `master`, or `develop`
 
 The **SonarQube** workflow runs automatically on push/PR to `main`, `master`, or `develop`.
 
@@ -103,10 +111,13 @@ Coverage reports:
 
 | Problem | Fix |
 |---------|-----|
+| **Commits not showing in SonarCloud / GitHub** | 1) Install [SonarCloud GitHub App](https://github.com/apps/sonarcloud) on the repo. 2) Bind repo in SonarCloud project settings. 3) Disable Automatic Analysis. 4) Ensure **SonarQube** workflow is **green** (if `./gradlew build` fails, `sonar` never runs). |
 | Workflow skipped | Set variable `SONAR_ENABLED=false` only if you want to disable it |
+| Workflow fails before sonar | Fix failing tests first — Sonar runs only after `build` succeeds |
+| Scan log: `Detected project binding: NONEXISTENT` | Re-import/bind repo in SonarCloud or reinstall GitHub App |
 | Scan fails: authentication | Regenerate `SONAR_TOKEN` on SonarCloud |
-| **“A few extra steps are needed…”** | **Disable Automatic Analysis** (see step 3 above) |
-| Coverage still empty | Ensure `./gradlew build sonar` runs after frontend `test:coverage`; check log for `JaCoCo XML Report Importer` |
+| **“A few extra steps are needed…”** | **Disable Automatic Analysis** (see step 4 above) |
+| Coverage still empty | Ensure frontend `test:coverage` runs before `./gradlew build sonar` |
 | Still want local scan | `make sonar-local` |
 
 ---
