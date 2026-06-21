@@ -3,7 +3,7 @@ WORKDIR /home/gradle/project
 COPY . .
 RUN ./gradlew bootJar --no-daemon
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-jammy
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends curl \
