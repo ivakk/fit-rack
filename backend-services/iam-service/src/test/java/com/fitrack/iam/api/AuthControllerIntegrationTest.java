@@ -196,6 +196,7 @@ class AuthControllerIntegrationTest {
     @Test
     void meRequiresBearerToken() throws Exception {
         mockMvc.perform(get("/auth/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Missing or invalid Authorization header"));
     }
 }

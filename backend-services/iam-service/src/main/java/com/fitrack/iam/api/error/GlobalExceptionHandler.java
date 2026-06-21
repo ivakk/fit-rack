@@ -18,53 +18,63 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String ERROR_KEY = "error";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> validation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
-        return ResponseEntity.badRequest().body(Map.of("error", message.isBlank() ? "Validation failed" : message));
+        return badRequest(message.isBlank() ? "Validation failed" : message);
     }
 
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<Map<String, String>> duplicateKey(DuplicateKeyException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "Email already in use"));
+        return response(HttpStatus.CONFLICT, "Email already in use");
     }
 
     @ExceptionHandler(EmailAlreadyInUseException.class)
     public ResponseEntity<Map<String, String>> emailInUse(EmailAlreadyInUseException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+        return response(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, String>> invalidCredentials(InvalidCredentialsException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", ex.getMessage()));
+        return response(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<Map<String, String>> jwt(JwtException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Invalid or expired token"));
+        return response(HttpStatus.UNAUTHORIZED, "Invalid or expired token");
     }
 
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<Map<String, String>> missingHeader(MissingRequestHeaderException ex) {
         if ("Authorization".equalsIgnoreCase(ex.getHeaderName())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Missing or invalid Authorization header"));
+            return response(HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
         }
-        return ResponseEntity.badRequest().body(Map.of("error", "Missing required header: " + ex.getHeaderName()));
+        return badRequest("Missing required header: " + ex.getHeaderName());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(Map.of("error", "Invalid request"));
+        return badRequest("Invalid request");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> generic(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "An unexpected error occurred"));
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    }
+
+    private static Map<String, String> errorBody(String message) {
+        return Map.of(ERROR_KEY, message);
+    }
+
+    private static ResponseEntity<Map<String, String>> badRequest(String message) {
+        return ResponseEntity.badRequest().body(errorBody(message));
+    }
+
+    private static ResponseEntity<Map<String, String>> response(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(errorBody(message));
     }
 }
